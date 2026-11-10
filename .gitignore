@@ -1,0 +1,22 @@
+# Arduino / build artifacts
+build/
+*.elf
+*.hex
+*.bin
+*.map
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editors
+.vscode/
+*.bak
+*~
+*.autosave
+
+# Python (report generation)
+__pycache__/
+*.pyc
+.venv/

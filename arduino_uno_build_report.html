@@ -1,0 +1,1269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Power-Fail-Safe Sensor Logger — Arduino Uno Build Report</title>
+<style>
+@page { size: A4; margin: 14mm 14mm; }
+body { font-family: 'DejaVu Sans', Arial, sans-serif; font-size: 9.8pt; line-height: 1.34; color: #111; max-width: 192mm; margin: auto; }
+h1 { font-size: 17pt; text-align: center; margin: 0 0 2pt 0; line-height: 1.15; }
+h2 { font-size: 11pt; margin-top: 11pt; margin-bottom: 3pt; border-bottom: 1px solid #c9d3e3; padding-bottom: 2pt; color: #1f3864; }
+h3 { font-size: 10.2pt; margin-top: 8pt; margin-bottom: 2pt; color: #1f3864; }
+p { margin: 3pt 0; text-align: left; }
+table { border-collapse: collapse; width: 100%; margin: 4pt 0; font-size: 8.3pt; }
+th, td { border: 1px solid #999; padding: 3px 5px; vertical-align: top; }
+th { background: #e8f1fb; text-align: left; }
+code { font-family: 'DejaVu Sans Mono', monospace; background: #f4f4f4; padding: 1px 2px; font-size: 8.4pt; }
+pre { background: #f7f7f7; border: 1px solid #ddd; padding: 5px; overflow-x: auto; font-size: 7.9pt; line-height: 1.28; page-break-inside: avoid; }
+pre code { background: none; padding: 0; }
+img { width: 168mm; max-width: 100%; height: auto; display: block; margin: 6px auto 4px auto; page-break-inside: avoid; }
+blockquote { border-left: 4px solid #2F5597; margin: 5pt 0; padding: 4pt 8pt; background: #f5f8fc; }
+hr { border: none; border-top: 1px solid #ccc; margin: 7pt 0; }
+ul, ol { margin: 2pt 0 2pt 15pt; }
+li { margin: 1pt 0; }
+</style>
+</head>
+<body>
+<h1>Power-Fail-Safe Sensor Logger — Arduino Uno Build Report</h1>
+<p><strong>Student:</strong> Dandu Surath Preetham<br>
+<strong>Roll number:</strong> BL.SC.U4CSE24212<br>
+<strong>Project:</strong> Power-Fail-Safe Sensor Logger with Supercapacitor Hold-Up<br>
+<strong>Board:</strong> Arduino Uno R3<br>
+<strong>Date:</strong> 10 November 2026</p>
+<hr>
+<h2>1. Project overview</h2>
+<p>This project is a sensor logger that survives a short power failure. It detects when the 5 V adapter is unplugged, uses a supercapacitor bank to hold up the Arduino for a few seconds, saves the last temperature reading and timestamp to EEPROM with a CRC, displays the status on an OLED, and restores the record when power returns.</p>
+<p>The demonstration is:</p>
+<pre><code class="language-text">Power on → OLED shows POWER OK
+Unplug adapter → POWER LOST → SAVING → SAVED
+Plug adapter back in → RECOVERED with the last reading and timestamp
+</code></pre>
+<p>The Arduino Uno R3 is used instead of the ESP32. It is a 5 V board with a 10-bit ADC, 1 KB EEPROM, and 2 KB SRAM. The circuit and firmware are adapted to those limits.</p>
+<hr>
+<h2>2. System block diagram</h2>
+<p><img alt="Figure 1: Arduino Uno system block diagram" src="figures/uno_block_diagram.png"></p>
+<p><em>Figure 1: System block diagram. D1/D2 provide adapter OR-ing; the 10 Ω resistor limits the supercapacitor charge current; the 4×1 F bank provides the hold-up energy.</em></p>
+<hr>
+<h2>3. Components and their purpose</h2>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th style="text-align: right;">Qty</th>
+<th>Purpose in this project</th>
+<th>Why this part/value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Arduino Uno R3</strong></td>
+<td style="text-align: right;">1</td>
+<td>Main controller: reads the voltage dividers and DS18B20, drives the OLED, LED, buzzer, and button, stores the record in EEPROM</td>
+<td>5 V logic, 10-bit ADC, 1 KB EEPROM, 2 KB SRAM; already owned</td>
+</tr>
+<tr>
+<td><strong>1 F, 5.5 V supercapacitor</strong></td>
+<td style="text-align: right;">4</td>
+<td>Energy storage for the hold-up</td>
+<td>4 in parallel = 4 F at 5.5 V; 5.5 V rating is safe for a 5 V rail</td>
+</tr>
+<tr>
+<td><strong>1N5819 Schottky diode</strong></td>
+<td style="text-align: right;">2</td>
+<td>D1: connects the adapter to the 5 V rail and blocks backfeed. D2: connects the supercapacitor to the 5 V rail when the adapter is removed</td>
+<td>Low forward drop (~0.3 V at 0.1–0.5 A), 1 A rating; a 1N4007/RL207 drops too much</td>
+</tr>
+<tr>
+<td><strong>10 Ω, 5 W resistor</strong></td>
+<td style="text-align: right;">1</td>
+<td>Limits the initial supercapacitor charge current</td>
+<td>5 V / 10 Ω = 0.5 A initial; 2.5 W peak; 5 W rating gives margin</td>
+</tr>
+<tr>
+<td><strong>10 kΩ resistor</strong></td>
+<td style="text-align: right;">4</td>
+<td>Two 10k/10k voltage dividers: adapter voltage → A0, supercapacitor voltage → A1</td>
+<td>Scales 5 V to 2.5 V, safe for the 5 V ADC</td>
+</tr>
+<tr>
+<td><strong>4.7 kΩ resistor</strong></td>
+<td style="text-align: right;">1</td>
+<td>Pull-up for the DS18B20 1-Wire data line</td>
+<td>Keeps the data line high when idle</td>
+</tr>
+<tr>
+<td><strong>220 Ω resistor</strong></td>
+<td style="text-align: right;">2</td>
+<td>LED current limiting</td>
+<td>~14 mA at 5 V; protects the LED and the GPIO</td>
+</tr>
+<tr>
+<td><strong>0.96" SSD1306 OLED</strong></td>
+<td style="text-align: right;">1</td>
+<td>Shows <code>POWER OK</code>, <code>POWER LOST</code>, <code>SAVING</code>, <code>SAVED</code>, <code>RECOVERED</code>, temperature, time, SC voltage, PF count</td>
+<td>128×64 I²C display; only 4 pins</td>
+</tr>
+<tr>
+<td><strong>DS18B20 temperature sensor</strong></td>
+<td style="text-align: right;">1</td>
+<td>Measures the logged temperature</td>
+<td>Digital 1-Wire sensor; ±0.5 °C; waterproof probe is easy to mount</td>
+</tr>
+<tr>
+<td><strong>DS3231 RTC module</strong></td>
+<td style="text-align: right;">1</td>
+<td>Provides the timestamp that survives power loss</td>
+<td>I²C RTC with coin-cell backup; accurate</td>
+</tr>
+<tr>
+<td><strong>CR2032 / LIR2032 coin cell</strong></td>
+<td style="text-align: right;">1</td>
+<td>Keeps the RTC running when the main power is off</td>
+<td>Check whether the module charges; use LIR2032 if it does</td>
+</tr>
+<tr>
+<td><strong>LED, 5 mm</strong></td>
+<td style="text-align: right;">1</td>
+<td>Visual trigger/status indicator</td>
+<td>Cheap; visible during the demo</td>
+</tr>
+<tr>
+<td><strong>Active buzzer</strong></td>
+<td style="text-align: right;">1</td>
+<td>Audible confirmation on <code>SAVED</code>/<code>RECOVERED</code></td>
+<td>Cheap; the demo can be heard</td>
+</tr>
+<tr>
+<td><strong>Push button</strong></td>
+<td style="text-align: right;">1</td>
+<td>Manual log / test trigger</td>
+<td>Optional but useful; internal pull-up</td>
+</tr>
+<tr>
+<td><strong>Half-size breadboard</strong></td>
+<td style="text-align: right;">1</td>
+<td>Prototyping the logic, sensors, and dividers</td>
+<td>400 tie points; keep the supercapacitor off it</td>
+</tr>
+<tr>
+<td><strong>2-pin terminal block</strong></td>
+<td style="text-align: right;">1</td>
+<td>Secure connection for the supercapacitor and adapter leads</td>
+<td>The 1 F leads and adapter wires are too thick for a breadboard</td>
+</tr>
+<tr>
+<td><strong>Small perfboard, 5×7 cm</strong></td>
+<td style="text-align: right;">1</td>
+<td>Mounts the four 1 F capacitors and their common +/− buses</td>
+<td>Optional if using 4-pin terminal blocks or Wago nuts</td>
+</tr>
+<tr>
+<td><strong>Solder wire + heat-shrink</strong></td>
+<td style="text-align: right;">1</td>
+<td>Joins and insulates the capacitor buses</td>
+<td>Not needed if using terminal blocks/Wago</td>
+</tr>
+<tr>
+<td><strong>5-way Wago lever nuts</strong> — no-solder option</td>
+<td style="text-align: right;">2</td>
+<td>Join all four + leads and all four − leads without soldering</td>
+<td>One for SC+, one for SC−; add a red/black wire to the terminal block</td>
+</tr>
+<tr>
+<td><strong>4-pin terminal block</strong> — no-solder option</td>
+<td style="text-align: right;">2</td>
+<td>Alternative to Wago: one capacitor lead per screw, bridge the terminals</td>
+<td>One block for SC+, one for SC−</td>
+</tr>
+<tr>
+<td><strong>Jumper wires</strong></td>
+<td style="text-align: right;">1 set</td>
+<td>Connections between the Uno, OLED, RTC, DS18B20, dividers, LED, buzzer, button</td>
+<td>M–M and M–F</td>
+</tr>
+<tr>
+<td><strong>5 V, 2 A adapter</strong></td>
+<td style="text-align: right;">1</td>
+<td>Primary 5 V supply; the thing that is unplugged</td>
+<td>2 A gives margin for the 0.5 A charge current</td>
+</tr>
+<tr>
+<td><strong>Micro-USB breakout</strong></td>
+<td style="text-align: right;">1</td>
+<td>Gives 5 V/GND screw/pin access from the adapter</td>
+<td>Avoids cutting the adapter cable</td>
+</tr>
+<tr>
+<td><strong>USB-A to USB-B cable</strong></td>
+<td style="text-align: right;">1</td>
+<td>Programming the Uno</td>
+<td>Only for programming; unplug during the demo</td>
+</tr>
+<tr>
+<td><strong>Digital multimeter</strong></td>
+<td style="text-align: right;">1</td>
+<td>Measures the 5 V rail, dividers, supercapacitor voltage, and hold-up</td>
+<td>Essential for setup and results</td>
+</tr>
+<tr>
+<td><strong>100 nF ceramic capacitor</strong></td>
+<td style="text-align: right;">2</td>
+<td>Optional ADC noise filter across A0–GND and A1–GND</td>
+<td>Not required for the basic demo</td>
+</tr>
+<tr>
+<td><strong>MT3608 5 V boost</strong></td>
+<td style="text-align: right;">1</td>
+<td>Optional: extends the hold-up if the measured time is under ~3 s</td>
+<td>Not used in the basic build</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Important:</strong> D1 and D2 in this report are the two <strong>1N5819 diodes</strong>. The push button uses <strong>Arduino digital pin 2</strong> — a different thing.</p>
+<hr>
+<h2>4. Arduino Uno pin map</h2>
+<table>
+<thead>
+<tr>
+<th>Function</th>
+<th>Arduino Uno pin</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>OLED SDA</td>
+<td><strong>A4</strong></td>
+<td>I²C data</td>
+</tr>
+<tr>
+<td>OLED SCL</td>
+<td><strong>A5</strong></td>
+<td>I²C clock</td>
+</tr>
+<tr>
+<td>DS3231 SDA</td>
+<td><strong>A4</strong></td>
+<td>Shared I²C bus</td>
+</tr>
+<tr>
+<td>DS3231 SCL</td>
+<td><strong>A5</strong></td>
+<td>Shared I²C bus</td>
+</tr>
+<tr>
+<td>DS18B20 data</td>
+<td><strong>D4</strong></td>
+<td>4.7 kΩ pull-up to 5 V</td>
+</tr>
+<tr>
+<td>Adapter-sense divider</td>
+<td><strong>A0</strong></td>
+<td>10k/10k; divider before D1</td>
+</tr>
+<tr>
+<td>Supercapacitor-sense divider</td>
+<td><strong>A1</strong></td>
+<td>10k/10k; from SC+</td>
+</tr>
+<tr>
+<td>LED</td>
+<td><strong>D8</strong></td>
+<td>220 Ω → LED → GND</td>
+</tr>
+<tr>
+<td>Buzzer</td>
+<td><strong>D9</strong></td>
+<td>Active buzzer → GND</td>
+</tr>
+<tr>
+<td>Button</td>
+<td><strong>D2</strong></td>
+<td>Button → GND; <code>INPUT_PULLUP</code></td>
+</tr>
+<tr>
+<td>Power input</td>
+<td><strong>5V pin</strong></td>
+<td><strong>Not VIN</strong>; from the 5 V rail</td>
+</tr>
+<tr>
+<td>Ground</td>
+<td><strong>GND</strong></td>
+<td>Common ground</td>
+</tr>
+</tbody>
+</table>
+<p><strong>I²C addresses:</strong> OLED <code>0x3C</code> (fallback <code>0x3D</code>); DS3231 <code>0x68</code>.</p>
+<hr>
+<h2>5. Step-by-step connections</h2>
+<blockquote>
+<p><strong>Before you start:</strong> unplug the 5 V adapter and the Uno USB cable. Check the polarity of every supercapacitor. Work on a non-metal surface. Keep the 10 Ω resistor away from plastic.</p>
+</blockquote>
+<h3>Step 1 — Prepare the supercapacitor bank</h3>
+<p>You need <strong>4× 1 F, 5.5 V</strong> capacitors. If you have 5, use 5 for more margin. Do not use fewer than 3.</p>
+<ol>
+<li>Identify the <strong>negative</strong> lead of each capacitor: the side with the stripe is negative.</li>
+<li>Choose one assembly method:</li>
+</ol>
+<p><strong>A. Solder + perfboard (if you have a soldering iron):</strong></p>
+<ul>
+<li>Solder all four <strong>+</strong> leads to a common copper wire/perfboard pad.</li>
+<li>Solder all four <strong>−</strong> leads to a second common wire/pad.</li>
+<li>Solder a red wire to the + bus and a black wire to the − bus.</li>
+<li>Heat-shrink the joints.</li>
+</ul>
+<p><strong>B. No-solder Wago lever nuts (recommended if you do not have a soldering iron):</strong></p>
+<ul>
+<li>Use two <strong>5-way Wago 221 lever nuts</strong> (or two 4-way lever nuts).</li>
+<li>Lift the lever on the first Wago. Insert all four capacitor <strong>+</strong> leads plus a short <strong>red wire</strong> into the ports. Close the lever. Tug each lead gently to confirm it is clamped.</li>
+<li>Repeat with the second Wago for all four <strong>−</strong> leads plus a short <strong>black wire</strong>.</li>
+<li>The red/black wires become the SC+/SC− connection to the terminal block.</li>
+</ul>
+<p><strong>C. No-solder terminal blocks:</strong></p>
+<ul>
+<li>Use two <strong>4-pin screw terminal blocks</strong> (one for +, one for −).</li>
+<li>Put one capacitor lead under each screw and tighten.</li>
+<li>Bridge all four screw terminals with short jumper wires to make a common bus.</li>
+<li>Connect a red wire from the + bus and a black wire from the − bus to the 2-pin terminal block.</li>
+</ul>
+<p><strong>D. Using the two 2-pin terminal blocks you already have:</strong></p>
+<ul>
+<li>Try putting <strong>two + tabs under each screw</strong> of one 2-pin block; do the same with two − tabs under each screw of the other block.</li>
+<li>Bridge the two screws of each block with a short jumper wire so all four tabs are common.</li>
+<li>If the tabs do <strong>not</strong> fit two per screw, do not force them. Use the 4-pin blocks/Wago method, or ask a local shop to solder the four capacitors in parallel.</li>
+<li>The 2-pin block method works only if the screw clamp closes firmly on both tabs; check by gently pulling each tab.</li>
+</ul>
+<ol start="3">
+<li>Connect the common <strong>+</strong> to one terminal of the <strong>2-pin terminal block</strong>; label it <strong>SC+</strong>.</li>
+<li>Connect the common <strong>−</strong> to the other terminal; label it <strong>SC−/GND</strong>.</li>
+<li>Measure from SC+ to SC− with the multimeter on resistance/continuity: it should not be a short. A capacitor will show a changing resistance as it charges.</li>
+<li>Do not connect the bank to power yet.</li>
+</ol>
+<p><strong>Purpose:</strong> the four 1 F capacitors in parallel give <strong>4 F at 5.5 V</strong>. The terminal block takes the mechanical strain off the breadboard. The Wago/terminal-block method avoids soldering and keeps the four leads securely joined.</p>
+<h3>Step 2 — Build the power path</h3>
+<p>Use the micro-USB breakout for the adapter. If you have a DC jack or bench supply, the 5 V/GND nodes are the same.</p>
+<table>
+<thead>
+<tr>
+<th>Connection</th>
+<th>From</th>
+<th>To</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>5 V adapter → micro-USB breakout</td>
+<td>Breakout 5 V output</td>
+<td>Primary 5 V source</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Breakout 5 V</td>
+<td><strong>D1 anode</strong> (the non-stripe end)</td>
+<td>Adapter current enters D1</td>
+</tr>
+<tr>
+<td>3</td>
+<td><strong>D1 cathode</strong> (stripe end)</td>
+<td><strong>5 V rail</strong></td>
+<td>Adapter powers the rail; D1 blocks backfeed</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Breakout 5 V</td>
+<td><strong>10 Ω, 5 W resistor</strong> left end</td>
+<td>Charge path</td>
+</tr>
+<tr>
+<td>5</td>
+<td>10 Ω resistor right end</td>
+<td><strong>SC+</strong></td>
+<td>Limited current charges the supercapacitor bank</td>
+</tr>
+<tr>
+<td>6</td>
+<td><strong>SC+</strong></td>
+<td><strong>D2 anode</strong> (non-stripe end)</td>
+<td>Supercapacitor current enters D2</td>
+</tr>
+<tr>
+<td>7</td>
+<td><strong>D2 cathode</strong> (stripe end)</td>
+<td><strong>5 V rail</strong></td>
+<td>Supercapacitor powers the rail when the adapter is removed</td>
+</tr>
+<tr>
+<td>8</td>
+<td>Breakout GND</td>
+<td><strong>GND rail</strong></td>
+<td>Common ground</td>
+</tr>
+<tr>
+<td>9</td>
+<td>SC−</td>
+<td><strong>GND rail</strong></td>
+<td>Supercapacitor negative</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Diode orientation:</strong> the <strong>stripe is the cathode</strong>. For D1, the stripe points toward the 5 V rail. For D2, the stripe also points toward the 5 V rail. If either diode is reversed, the board will not power correctly.</p>
+<p><strong>Purpose:</strong> D1 and D2 form a diode-OR. D1 lets the adapter power the rail and prevents the supercapacitor from feeding back into the adapter. D2 lets the supercapacitor power the rail when the adapter is removed. The 10 Ω resistor is only in the charge path; it is not in the backup discharge path.</p>
+<h3>Step 3 — Adapter-sense divider (A0)</h3>
+<p>This divider must be on the <strong>adapter side of D1</strong>, not after D1.</p>
+<table>
+<thead>
+<tr>
+<th>Connection</th>
+<th>From</th>
+<th>To</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Breakout 5 V (before D1)</td>
+<td><strong>10 kΩ</strong> resistor #1 left end</td>
+<td>Top of divider</td>
+</tr>
+<tr>
+<td>2</td>
+<td>10 kΩ #1 right end</td>
+<td><strong>A0</strong></td>
+<td>Scaled adapter voltage</td>
+</tr>
+<tr>
+<td>3</td>
+<td>A0</td>
+<td><strong>10 kΩ</strong> resistor #2 left end</td>
+<td>Bottom of divider</td>
+</tr>
+<tr>
+<td>4</td>
+<td>10 kΩ #2 right end</td>
+<td><strong>GND</strong></td>
+<td>Divider ground</td>
+</tr>
+</tbody>
+</table>
+<p>At 5 V, A0 should read about <strong>2.5 V</strong>. When the adapter is unplugged, A0 should fall to <strong>0 V</strong>. If A0 stays at 2.5 V after unplugging, the divider is after D1 — move it before D1.</p>
+<p><strong>Purpose:</strong> the Uno ADC accepts 0–5 V. The divider halves the adapter voltage so the firmware can detect loss safely. It must see the adapter directly; after D1, the supercapacitor would hold it high and the power failure would be missed.</p>
+<h3>Step 4 — Supercapacitor-sense divider (A1)</h3>
+<table>
+<thead>
+<tr>
+<th>Connection</th>
+<th>From</th>
+<th>To</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><strong>SC+</strong></td>
+<td><strong>10 kΩ</strong> resistor #3 left end</td>
+<td>Top of divider</td>
+</tr>
+<tr>
+<td>2</td>
+<td>10 kΩ #3 right end</td>
+<td><strong>A1</strong></td>
+<td>Scaled supercapacitor voltage</td>
+</tr>
+<tr>
+<td>3</td>
+<td>A1</td>
+<td><strong>10 kΩ</strong> resistor #4 left end</td>
+<td>Bottom of divider</td>
+</tr>
+<tr>
+<td>4</td>
+<td>10 kΩ #4 right end</td>
+<td><strong>GND</strong></td>
+<td>Divider ground</td>
+</tr>
+</tbody>
+</table>
+<p>At a charged supercapacitor (about 5 V), A1 should read about <strong>2.5 V</strong>.</p>
+<p><strong>Purpose:</strong> lets the firmware display the supercapacitor voltage and monitor the hold-up. The divider protects the ADC from the capacitor voltage.</p>
+<h3>Step 5 — Power the Arduino</h3>
+<table>
+<thead>
+<tr>
+<th>Connection</th>
+<th>From</th>
+<th>To</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><strong>5 V rail</strong></td>
+<td><strong>Arduino 5V pin</strong></td>
+<td>Powers the Uno from the adapter/supercapacitor rail</td>
+</tr>
+<tr>
+<td>2</td>
+<td><strong>GND rail</strong></td>
+<td><strong>Arduino GND</strong></td>
+<td>Common ground</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Do not use VIN.</strong> The 5 V rail already is a regulated 5 V source; VIN expects 7–12 V and would not work correctly.</p>
+<p><strong>Important:</strong> during programming, the Uno is powered by USB. Disconnect the <strong>5 V wire from the Uno 5V pin</strong> (or unplug the adapter) before connecting USB. After uploading, unplug USB and reconnect the 5 V rail. Do not connect USB and the external 5 V rail at the same time.</p>
+<h3>Step 6 — Connect the OLED</h3>
+<table>
+<thead>
+<tr>
+<th>OLED pin</th>
+<th>Arduino Uno</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>VCC</td>
+<td><strong>5 V</strong></td>
+<td>Display power</td>
+</tr>
+<tr>
+<td>GND</td>
+<td><strong>GND</strong></td>
+<td>Common ground</td>
+</tr>
+<tr>
+<td>SDA</td>
+<td><strong>A4</strong></td>
+<td>I²C data</td>
+</tr>
+<tr>
+<td>SCL</td>
+<td><strong>A5</strong></td>
+<td>I²C clock</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Purpose:</strong> the OLED is the main user interface. It shows the power-fail sequence and the recovered record. The 4-pin I²C module is used; the address is usually <code>0x3C</code>.</p>
+<h3>Step 7 — Connect the DS3231 RTC</h3>
+<table>
+<thead>
+<tr>
+<th>DS3231 pin</th>
+<th>Arduino Uno</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>VCC</td>
+<td><strong>5 V</strong></td>
+<td>RTC power</td>
+</tr>
+<tr>
+<td>GND</td>
+<td><strong>GND</strong></td>
+<td>Common ground</td>
+</tr>
+<tr>
+<td>SDA</td>
+<td><strong>A4</strong></td>
+<td>I²C data</td>
+</tr>
+<tr>
+<td>SCL</td>
+<td><strong>A5</strong></td>
+<td>I²C clock</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Purpose:</strong> the DS3231 provides the timestamp that survives the power failure. It shares the I²C bus with the OLED. Address <code>0x68</code>.</p>
+<p><strong>Coin cell:</strong> check whether the module includes a CR2032. If the module has a charging circuit, use a <strong>LIR2032</strong> or remove the charging resistor for a CR2032.</p>
+<h3>Step 8 — Connect the DS18B20</h3>
+<table>
+<thead>
+<tr>
+<th>DS18B20 wire</th>
+<th>Arduino Uno</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>VDD / red</td>
+<td><strong>5 V</strong></td>
+<td>Sensor power</td>
+</tr>
+<tr>
+<td>GND / black</td>
+<td><strong>GND</strong></td>
+<td>Common ground</td>
+</tr>
+<tr>
+<td>DQ / yellow or white</td>
+<td><strong>D4</strong></td>
+<td>1-Wire data</td>
+</tr>
+<tr>
+<td>4.7 kΩ resistor</td>
+<td>Between <strong>D4</strong> and <strong>5 V</strong></td>
+<td>1-Wire pull-up</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Purpose:</strong> the DS18B20 measures the temperature that is logged. The 4.7 kΩ pull-up is required; without it, the sensor will read <code>--</code> or <code>-127 °C</code>.</p>
+<p><strong>Wire colours</strong> vary by probe. Check the probe datasheet or measure: red = VDD, black = GND, yellow/white = DQ is common.</p>
+<h3>Step 9 — Connect the LED</h3>
+<table>
+<thead>
+<tr>
+<th>Connection</th>
+<th>From</th>
+<th>To</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><strong>D8</strong></td>
+<td><strong>220 Ω</strong> resistor</td>
+<td>Current limit</td>
+</tr>
+<tr>
+<td>2</td>
+<td>220 Ω resistor</td>
+<td><strong>LED anode</strong> (long leg)</td>
+<td></td>
+</tr>
+<tr>
+<td>3</td>
+<td>LED cathode (short leg)</td>
+<td><strong>GND</strong></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Purpose:</strong> visual status. The firmware turns it on during <code>PREDICT</code>/<code>POWER_FAIL</code> and off after <code>SAVED</code>.</p>
+<h3>Step 10 — Connect the buzzer</h3>
+<table>
+<thead>
+<tr>
+<th>Connection</th>
+<th>From</th>
+<th>To</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><strong>D9</strong></td>
+<td>Buzzer <strong>+</strong></td>
+<td>Drive signal</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Buzzer <strong>−</strong></td>
+<td><strong>GND</strong></td>
+<td>Return</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Purpose:</strong> audible confirmation on <code>SAVED</code> and <code>RECOVERED</code>. Use a small <strong>active</strong> buzzer. If the buzzer draws more than ~20 mA, drive it through an NPN transistor (1 kΩ base resistor) instead of directly from D9.</p>
+<h3>Step 11 — Connect the button</h3>
+<table>
+<thead>
+<tr>
+<th>Connection</th>
+<th>From</th>
+<th>To</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><strong>D2</strong></td>
+<td>Button terminal 1</td>
+<td>Input</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Button terminal 2</td>
+<td><strong>GND</strong></td>
+<td>Pressed = LOW</td>
+</tr>
+</tbody>
+</table>
+<p>The firmware uses <code>INPUT_PULLUP</code>; no external resistor is needed.</p>
+<p><strong>Purpose:</strong> optional manual log/test. Pressing it saves a normal record and prints <code>MANUAL_LOG</code> on the serial monitor.</p>
+<h3>Step 12 — Final inspection</h3>
+<p>Before powering:</p>
+<ol>
+<li>Check <strong>D1/D2 orientation</strong>: stripe (cathode) toward the 5 V rail.</li>
+<li>Check <strong>supercapacitor polarity</strong>: stripe is negative; SC− goes to GND.</li>
+<li>Check <strong>5 V rail is not shorted to GND</strong> with the multimeter.</li>
+<li>Check <strong>A0 divider is before D1</strong>; A0 should not be connected to the 5 V rail after D1.</li>
+<li>Check <strong>A1 divider is at SC+</strong>.</li>
+<li>Check the <strong>OLED/RTC</strong> are on A4/A5, not D4/D5.</li>
+<li>Check the <strong>DS18B20</strong> data is on D4 and the 4.7 kΩ goes to 5 V.</li>
+<li>Check the <strong>LED</strong> has the 220 Ω resistor; the <strong>buzzer</strong> is on D9.</li>
+<li>Check the <strong>button</strong> goes from D2 to GND.</li>
+<li>Check the <strong>Uno 5V pin</strong> is connected to the 5 V rail, not VIN.</li>
+</ol>
+<hr>
+<h2>6. Power path and voltage checks</h2>
+<h3>6.1 Power-path schematic</h3>
+<pre><code class="language-text">5 V adapter + ──► D1 (1N5819) ──► 5 V rail ──► Arduino 5V pin
+       │                              ▲
+       └── 10 Ω 5 W ──► SC+ ──► D2 ───┘
+                          │
+                         SC− ── GND
+
+Adapter + ── 10k ── A0 ── 10k ── GND     (before D1)
+SC+       ── 10k ── A1 ── 10k ── GND
+</code></pre>
+<h3>6.2 Expected voltages</h3>
+<table>
+<thead>
+<tr>
+<th>Test point</th>
+<th style="text-align: right;">Adapter connected</th>
+<th style="text-align: right;">Adapter unplugged</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Adapter/breakout 5 V</td>
+<td style="text-align: right;">5.0 V</td>
+<td style="text-align: right;">0 V</td>
+</tr>
+<tr>
+<td>5 V rail</td>
+<td style="text-align: right;">4.6–4.7 V</td>
+<td style="text-align: right;">Supercapacitor voltage minus D2 drop</td>
+</tr>
+<tr>
+<td>SC+</td>
+<td style="text-align: right;">5.0 V (charged)</td>
+<td style="text-align: right;">Decays slowly</td>
+</tr>
+<tr>
+<td>A0</td>
+<td style="text-align: right;">~2.5 V</td>
+<td style="text-align: right;">0 V</td>
+</tr>
+<tr>
+<td>A1</td>
+<td style="text-align: right;">~2.5 V at 5 V SC</td>
+<td style="text-align: right;">Decays with SC</td>
+</tr>
+<tr>
+<td>Uno 5V pin</td>
+<td style="text-align: right;">4.6–4.7 V</td>
+<td style="text-align: right;">Must stay above 4.5 V for the Uno</td>
+</tr>
+</tbody>
+</table>
+<p><strong>If the 5 V rail is below 4.5 V:</strong> check the diode. An RL207/1N4007 drops ~0.7–1 V and is <strong>not</strong> suitable. Use 1N5819. Check D1/D2 orientation.</p>
+<p><strong>If A0 stays at 2.5 V after unplugging:</strong> the divider is after D1. Move it to the adapter side.</p>
+<p><strong>If SC+ does not charge:</strong> check the 10 Ω resistor, the supercapacitor polarity, and the terminal-block connections.</p>
+<hr>
+<h2>7. Supercapacitor hold-up calculation</h2>
+<p>The Uno needs at least <strong>4.5 V</strong> on its 5 V pin. With the 1N5819 D2 drop (~0.3 V), the supercapacitor must stay above about <strong>4.8 V</strong>. The usable window is therefore small: <strong>5.0 V → 4.8 V</strong>.</p>
+<table>
+<thead>
+<tr>
+<th>Bank</th>
+<th style="text-align: right;">Capacitance</th>
+<th style="text-align: right;">Estimated Uno hold-up*</th>
+<th>Verdict</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1× 1 F</td>
+<td style="text-align: right;">1 F</td>
+<td style="text-align: right;">~1–1.5 s</td>
+<td>Too short</td>
+</tr>
+<tr>
+<td>2× 1 F</td>
+<td style="text-align: right;">2 F</td>
+<td style="text-align: right;">~2–2.5 s</td>
+<td>Marginal</td>
+</tr>
+<tr>
+<td><strong>3× 1 F</strong></td>
+<td style="text-align: right;"><strong>3 F</strong></td>
+<td style="text-align: right;"><strong>~3.5–4.5 s</strong></td>
+<td><strong>Minimum recommended</strong></td>
+</tr>
+<tr>
+<td><strong>4× 1 F</strong></td>
+<td style="text-align: right;"><strong>4 F</strong></td>
+<td style="text-align: right;"><strong>~5–6 s</strong></td>
+<td><strong>Recommended</strong></td>
+</tr>
+<tr>
+<td>5× 1 F</td>
+<td style="text-align: right;">5 F</td>
+<td style="text-align: right;">~6–7 s</td>
+<td>Best margin</td>
+</tr>
+</tbody>
+</table>
+<p>*Estimates for the Uno + OLED + RTC + DS18B20 at roughly 70–80 mA. Measure your actual hold-up.</p>
+<p><strong>Charge time:</strong> with 4 F and 10 Ω, the time constant is about 40 s; pre-charge <strong>2–3 minutes</strong> before the demo. With 22 Ω, pre-charge 4–5 minutes.</p>
+<hr>
+<h2>8. First power-on test (without the Arduino)</h2>
+<p>Do this before connecting the Uno, so a wiring mistake does not damage it.</p>
+<ol>
+<li>Connect the adapter, breakout, D1, 10 Ω, supercapacitor bank, and D2 as in Step 2. Leave the Uno disconnected.</li>
+<li>Measure the adapter/breakout voltage: <strong>5.0 V</strong>.</li>
+<li>Measure the 5 V rail: <strong>4.6–4.7 V</strong>.</li>
+<li>Measure SC+: <strong>5.0 V</strong> after charging.</li>
+<li>Measure A0: <strong>2.5 V</strong> with the adapter, <strong>0 V</strong> with the adapter unplugged.</li>
+<li>Measure A1: <strong>2.5 V</strong> at 5 V SC.</li>
+<li>Unplug the adapter. Watch SC+ and the 5 V rail fall slowly. The rail should stay above 4.5 V for at least a few seconds.</li>
+<li>Reconnect the adapter. The rail should return to 4.6–4.7 V.</li>
+</ol>
+<p>Only after these checks should you connect the Uno 5V/GND pins.</p>
+<hr>
+<h2>9. Firmware upload and test</h2>
+<p><strong>Firmware file:</strong> <code>arduino_uno_firmware/arduino_uno_firmware.ino</code></p>
+<p><strong>Libraries:</strong></p>
+<ul>
+<li>Adafruit GFX Library</li>
+<li>Adafruit SSD1306</li>
+<li>OneWire</li>
+<li>DallasTemperature</li>
+<li>RTClib (Adafruit)</li>
+<li>EEPROM and <code>avr/wdt</code> are included with the Arduino core.</li>
+</ul>
+<p><strong>Upload steps:</strong></p>
+<ol>
+<li>Open the <code>.ino</code> file in Arduino IDE.</li>
+<li>Select <strong>Tools → Board → Arduino Uno</strong>.</li>
+<li>Select the correct port.</li>
+<li><strong>Disconnect the 5 V wire from the Uno 5V pin</strong> (or unplug the adapter) so the Uno is powered only by USB.</li>
+<li>Upload.</li>
+<li>Open the Serial Monitor at <strong>115200 baud</strong>.</li>
+<li>Confirm the boot messages: <code>BOOT</code>, <code>READY</code>.</li>
+<li>Unplug USB. Reconnect the 5 V rail to the Uno 5V pin.</li>
+<li>Power from the adapter. The OLED should show <code>POWER OK</code>, temperature, time, SC voltage, and PF count.</li>
+</ol>
+<p><strong>Expected serial output:</strong></p>
+<pre><code class="language-text">BOOT valid=0 seq=0 pfCount=0
+READY
+...
+12345,4.820,5.000,0
+</code></pre>
+<blockquote>
+<p><strong>Important — USB power conflict:</strong> the Uno’s USB cable also powers the board. If USB is connected during the unplug test, the Uno stays alive from USB and the supercapacitor is not actually being tested. For the real power-fail test, <strong>unplug USB</strong> and use the OLED + multimeter. To capture serial logs during the test, use a <strong>data-only USB cable</strong> (the VBUS/5 V wire disconnected) or a <strong>USB power blocker</strong>. The Uno’s USB-UART is powered from the board’s 5 V rail, so serial can still work without USB VBUS. If you cannot make a data-only cable, use the OLED and multimeter for the results.</p>
+</blockquote>
+<p><strong>Test sequence:</strong></p>
+<ol>
+<li>Press the button once: a manual record is saved (<code>MANUAL_LOG</code>).</li>
+<li>Unplug the adapter for about 2 seconds.</li>
+<li>OLED shows <code>POWER LOST</code> → <code>SAVING...</code> → <code>SAVED</code>.</li>
+<li>Plug the adapter back in.</li>
+<li>The Uno resets and shows <code>RECOVERED</code> with the last temperature and timestamp.</li>
+<li>Repeat 20 times and count successful recoveries.</li>
+</ol>
+<p><strong>Note:</strong> the Uno is reset by the watchdog when the adapter returns. This is intentional; the boot code reads the EEPROM record and shows <code>RECOVERED</code>.</p>
+<hr>
+<h2>10. Demo sequence</h2>
+<ol>
+<li><strong>Power on:</strong> OLED shows <code>POWER OK</code>, live temperature, time, SC voltage, and PF count.</li>
+<li><strong>Normal operation:</strong> explain that the adapter powers the board and charges the supercapacitor bank.</li>
+<li><strong>Unplug:</strong> OLED shows <code>POWER LOST</code> → <code>SAVING...</code> → <code>SAVED</code>; LED/buzzer confirm.</li>
+<li><strong>Plug back in:</strong> Uno resets and shows <code>RECOVERED</code> with the last reading and timestamp.</li>
+<li><strong>Repeat:</strong> show the PF count incrementing.</li>
+<li><strong>Results:</strong> show the measured hold-up and the 20-cycle recovery count.</li>
+</ol>
+<p><strong>Backup:</strong> record a video of a successful unplug/replug cycle. If the OLED fails, use the serial monitor.</p>
+<hr>
+<h2>11. Troubleshooting</h2>
+<table>
+<thead>
+<tr>
+<th>Problem</th>
+<th>Likely cause</th>
+<th>Fix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>OLED blank</td>
+<td>Wrong address or wiring</td>
+<td>Check A4/A5; try <code>0x3D</code>; run I²C scanner</td>
+</tr>
+<tr>
+<td>RTC not found</td>
+<td>Wiring/coin cell</td>
+<td>Check A4/A5; address <code>0x68</code>; replace CR2032/LIR2032</td>
+</tr>
+<tr>
+<td>DS18B20 shows <code>--</code></td>
+<td>Missing pull-up</td>
+<td>4.7 kΩ from D4 to 5 V; check wire colours</td>
+</tr>
+<tr>
+<td>No power-fail detection</td>
+<td>Divider after D1</td>
+<td>Move adapter divider to the adapter side of D1; check A0</td>
+</tr>
+<tr>
+<td>A0 always 2.5 V</td>
+<td>Divider after D1</td>
+<td>Move before D1</td>
+</tr>
+<tr>
+<td>A0 always 0 V</td>
+<td>Divider wiring</td>
+<td>Check 10k/10k; adapter 5 V</td>
+</tr>
+<tr>
+<td>SC+ does not charge</td>
+<td>10 Ω/polarity</td>
+<td>Check resistor, terminal block, capacitor polarity</td>
+</tr>
+<tr>
+<td>Hold-up too short</td>
+<td>Capacitance/load</td>
+<td>4–5× 1 F; turn OLED off after <code>SAVED</code>; optional 5 V boost</td>
+</tr>
+<tr>
+<td>Uno resets when unplugged</td>
+<td>5 V rail below 4.5 V</td>
+<td>Check diode (RL207?); 1N5819; charge supercapacitor</td>
+</tr>
+<tr>
+<td>No <code>RECOVERED</code> screen</td>
+<td>EEPROM record invalid</td>
+<td>Check serial <code>SAVE</code>; CRC; power cycle</td>
+</tr>
+<tr>
+<td>Button does nothing</td>
+<td>Wiring</td>
+<td>D2 to GND; internal pull-up</td>
+</tr>
+<tr>
+<td>Buzzer silent</td>
+<td>Wrong type/polarity</td>
+<td>Active buzzer; D9 to +; − to GND; transistor if needed</td>
+</tr>
+<tr>
+<td>10 Ω resistor hot</td>
+<td>Normal during charge</td>
+<td>5 W rating; keep away from plastic; pre-charge</td>
+</tr>
+<tr>
+<td>Arduino not recognized</td>
+<td>USB cable/driver</td>
+<td>Use a data USB-A to USB-B cable; check port</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2>12. Safety and limitations</h2>
+<ul>
+<li><strong>5 V only.</strong> Do not use a 6 V or 9 V adapter; the supercapacitors are rated 5.5 V.</li>
+<li><strong>Supercapacitors can deliver a large current if shorted.</strong> Keep the leads insulated; do not short SC+ to SC−.</li>
+<li><strong>Observe polarity.</strong> A reversed supercapacitor can fail. The stripe is negative.</li>
+<li><strong>The 10 Ω, 5 W resistor gets warm during charging.</strong> Keep it away from plastic and paper.</li>
+<li><strong>Unplug the adapter before rewiring.</strong></li>
+<li><strong>Do not connect USB and the external 5 V rail at the same time.</strong> Unplug USB during the demo.</li>
+<li><strong>Use the 5V pin, not VIN.</strong></li>
+<li><strong>The RL207/1N4007 is not a substitute for the 1N5819.</strong> The higher forward drop leaves the Uno below 4.5 V.</li>
+<li>The project is a prototype. It is not a certified product, not a medical device, and not a full UPS. It holds up the logger for a few seconds, not hours.</li>
+<li>The Uno has 2 KB SRAM; the OLED buffer uses 1 KB. The firmware uses <code>char</code> buffers, not <code>String</code>. If memory problems appear, use a 16×2 I²C LCD instead of the OLED.</li>
+</ul>
+<hr>
+<h2>Appendix A — Bill of materials</h2>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th style="text-align: right;">Qty</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Arduino Uno R3</td>
+<td style="text-align: right;">1</td>
+<td>Owned</td>
+</tr>
+<tr>
+<td>1 F, 5.5 V supercapacitor</td>
+<td style="text-align: right;">4</td>
+<td>4 F; 3 minimum, 5 for margin</td>
+</tr>
+<tr>
+<td>1N5819 Schottky diode</td>
+<td style="text-align: right;">2</td>
+<td>D1, D2; 1 A, 40 V</td>
+</tr>
+<tr>
+<td>10 Ω, 5 W resistor</td>
+<td style="text-align: right;">1</td>
+<td>Or 2× 22 Ω, 2 W in parallel</td>
+</tr>
+<tr>
+<td>10 kΩ resistor</td>
+<td style="text-align: right;">4</td>
+<td>Two dividers</td>
+</tr>
+<tr>
+<td>4.7 kΩ resistor</td>
+<td style="text-align: right;">1</td>
+<td>DS18B20 pull-up</td>
+</tr>
+<tr>
+<td>220 Ω resistor</td>
+<td style="text-align: right;">2</td>
+<td>LED</td>
+</tr>
+<tr>
+<td>0.96" SSD1306 OLED, I²C</td>
+<td style="text-align: right;">1</td>
+<td>4-pin</td>
+</tr>
+<tr>
+<td>DS18B20 temperature sensor</td>
+<td style="text-align: right;">1</td>
+<td>Waterproof probe or module</td>
+</tr>
+<tr>
+<td>DS3231 RTC module</td>
+<td style="text-align: right;">1</td>
+<td>With coin cell</td>
+</tr>
+<tr>
+<td>CR2032 / LIR2032</td>
+<td style="text-align: right;">1</td>
+<td>Check module</td>
+</tr>
+<tr>
+<td>Breadboard, half-size</td>
+<td style="text-align: right;">1</td>
+<td></td>
+</tr>
+<tr>
+<td>2-pin terminal block</td>
+<td style="text-align: right;">1</td>
+<td>Supercapacitor/adapter</td>
+</tr>
+<tr>
+<td>Small perfboard, 5×7 cm</td>
+<td style="text-align: right;">1</td>
+<td>For soldered capacitor bus; optional</td>
+</tr>
+<tr>
+<td>Solder wire + heat-shrink</td>
+<td style="text-align: right;">1</td>
+<td>For soldered capacitor bus; optional</td>
+</tr>
+<tr>
+<td>5-way Wago lever nut</td>
+<td style="text-align: right;">2</td>
+<td>No-solder: join 4× + and 4× −</td>
+</tr>
+<tr>
+<td>4-pin terminal block</td>
+<td style="text-align: right;">2</td>
+<td>Alternative no-solder bus</td>
+</tr>
+<tr>
+<td>Jumper wires</td>
+<td style="text-align: right;">1 set</td>
+<td>M–M and M–F</td>
+</tr>
+<tr>
+<td>5 V, 2 A adapter</td>
+<td style="text-align: right;">1</td>
+<td>Regulated 5 V</td>
+</tr>
+<tr>
+<td>Micro-USB breakout</td>
+<td style="text-align: right;">1</td>
+<td>Or DC jack/bench supply</td>
+</tr>
+<tr>
+<td>USB-A to USB-B cable</td>
+<td style="text-align: right;">1</td>
+<td>Programming</td>
+</tr>
+<tr>
+<td>LED, buzzer, button</td>
+<td style="text-align: right;">1 each</td>
+<td>Optional but recommended</td>
+</tr>
+<tr>
+<td>100 nF capacitor</td>
+<td style="text-align: right;">2</td>
+<td>Optional ADC filter</td>
+</tr>
+<tr>
+<td>Multimeter</td>
+<td style="text-align: right;">1</td>
+<td>Tool</td>
+</tr>
+<tr>
+<td>MT3608 5 V boost</td>
+<td style="text-align: right;">1</td>
+<td>Optional; only if hold-up &lt;3 s</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2>Appendix B — Firmware</h2>
+<p>The complete Arduino Uno sketch is in:</p>
+<pre><code class="language-text">arduino_uno_firmware/arduino_uno_firmware.ino
+</code></pre>
+<p>Key differences from the ESP32 version:</p>
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>ESP32 version</th>
+<th>Arduino Uno version</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Storage</td>
+<td>NVS / <code>Preferences</code></td>
+<td><strong>EEPROM</strong></td>
+</tr>
+<tr>
+<td>ADC</td>
+<td>12-bit, 3.3 V, GPIO34/35</td>
+<td><strong>10-bit, 5 V, A0/A1</strong></td>
+</tr>
+<tr>
+<td>I²C</td>
+<td>GPIO21/22</td>
+<td><strong>A4/A5</strong></td>
+</tr>
+<tr>
+<td>DS18B20</td>
+<td>GPIO4</td>
+<td><strong>D4</strong></td>
+</tr>
+<tr>
+<td>LED / buzzer / button</td>
+<td>GPIO26/25/16</td>
+<td><strong>D8/D9/D2</strong></td>
+</tr>
+<tr>
+<td>Reset</td>
+<td><code>ESP.restart()</code></td>
+<td><strong>Watchdog reset</strong></td>
+</tr>
+<tr>
+<td>Serial</td>
+<td><code>Serial.printf()</code></td>
+<td><code>Serial.print()</code> / <code>sprintf</code></td>
+</tr>
+<tr>
+<td>Hold-up</td>
+<td>wider 3.3 V LDO window</td>
+<td>narrower 5 V/4.5 V window</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2>Appendix C — Measurement table</h2>
+<p>Fill this in during testing.</p>
+<table>
+<thead>
+<tr>
+<th>Measurement</th>
+<th style="text-align: right;">Expected</th>
+<th style="text-align: right;">Measured</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Adapter/breakout voltage</td>
+<td style="text-align: right;">5.0 V</td>
+<td style="text-align: right;"></td>
+</tr>
+<tr>
+<td>5 V rail with adapter</td>
+<td style="text-align: right;">4.6–4.7 V</td>
+<td style="text-align: right;"></td>
+</tr>
+<tr>
+<td>SC+ after charging</td>
+<td style="text-align: right;">5.0 V</td>
+<td style="text-align: right;"></td>
+</tr>
+<tr>
+<td>A0 with adapter</td>
+<td style="text-align: right;">2.5 V</td>
+<td style="text-align: right;"></td>
+</tr>
+<tr>
+<td>A0 with adapter unplugged</td>
+<td style="text-align: right;">0 V</td>
+<td style="text-align: right;"></td>
+</tr>
+<tr>
+<td>A1 at 5 V SC</td>
+<td style="text-align: right;">2.5 V</td>
+<td style="text-align: right;"></td>
+</tr>
+<tr>
+<td>Hold-up time (unplug to reset)</td>
+<td style="text-align: right;">4–6 s</td>
+<td style="text-align: right;"></td>
+</tr>
+<tr>
+<td>Charge time to ~4.9 V</td>
+<td style="text-align: right;">2–3 min</td>
+<td style="text-align: right;"></td>
+</tr>
+<tr>
+<td>Recovery success (20 cycles)</td>
+<td style="text-align: right;">20/20</td>
+<td style="text-align: right;"></td>
+</tr>
+<tr>
+<td>Temperature reading</td>
+<td style="text-align: right;">room temperature</td>
+<td style="text-align: right;"></td>
+</tr>
+<tr>
+<td>RTC time after power cycle</td>
+<td style="text-align: right;">preserved</td>
+<td style="text-align: right;"></td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2>Appendix D — Quick connection summary</h2>
+<pre><code class="language-text">OLED:     VCC→5V, GND→GND, SDA→A4, SCL→A5
+DS3231:   VCC→5V, GND→GND, SDA→A4, SCL→A5
+DS18B20:  VDD→5V, GND→GND, DQ→D4, 4.7k D4→5V
+LED:      D8→220Ω→LED→GND
+Buzzer:   D9→buzzer+; buzzer−→GND
+Button:   D2→button→GND
+A0:       adapter+ (before D1)→10k→A0→10k→GND
+A1:       SC+→10k→A1→10k→GND
+Power:    5V rail→Uno 5V pin; GND rail→Uno GND
+D1:       adapter+→anode; cathode→5V rail
+D2:       SC+→anode; cathode→5V rail
+10Ω:      adapter+→10Ω→SC+
+Supercap: 4×1F 5.5V in parallel; +→SC+, −→GND
+</code></pre>
+</body>
+</html>

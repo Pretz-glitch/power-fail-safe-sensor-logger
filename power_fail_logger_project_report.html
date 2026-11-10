@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Power-Fail-Safe Sensor Logger — Project Report</title>
+<style>
+@page {
+  size: A4;
+  margin: 20mm 16mm 16mm 16mm;
+  @top-center {
+    content: "EMBEDDED SYSTEMS  |  PROJECT REPORT";
+    width: 100%;
+    font-family: "Liberation Sans", Arial, sans-serif;
+    font-size: 8.5pt;
+    font-weight: bold;
+    color: #1F3864;
+    letter-spacing: 0.5pt;
+    border-bottom: 0.7pt solid #B4C7E7;
+    padding-bottom: 1.5mm;
+    vertical-align: bottom;
+  }
+  @bottom-left {
+    content: "Power-Fail-Safe Sensor Logger  |  Arduino Uno R3";
+    font-family: "Liberation Sans", Arial, sans-serif;
+    font-size: 7.8pt;
+    color: #7F7F7F;
+  }
+  @bottom-right {
+    content: "Page " counter(page) " of " counter(pages);
+    font-family: "Liberation Sans", Arial, sans-serif;
+    font-size: 7.8pt;
+    color: #7F7F7F;
+  }
+}
+html {
+  font-family: "Liberation Sans", Arial, sans-serif;
+  font-size: 9.2pt;
+  color: #111111;
+}
+body { margin: 0; }
+h1 {
+  font-size: 22pt;
+  line-height: 1.08;
+  color: #1F3864;
+  margin: 0 0 1.8mm 0;
+  letter-spacing: -0.2pt;
+}
+.subtitle {
+  font-size: 11pt;
+  color: #595959;
+  margin: 0 0 1.2mm 0;
+}
+.tagline {
+  font-size: 9.0pt;
+  font-style: italic;
+  color: #7F7F7F;
+  margin: 0 0 2.5mm 0;
+}
+.title-rule {
+  border-top: 1.2pt solid #1F3864;
+  margin: 0 0 1mm 0;
+}
+.sec {
+  position: relative;
+  margin: 3.2mm 0 1.2mm 0;
+  padding-left: 10.5mm;
+  min-height: 7mm;
+}
+.sec .num {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 7mm;
+  height: 7mm;
+  border-radius: 50%;
+  background: #1F3864;
+  color: #ffffff;
+  font-size: 10.5pt;
+  font-weight: bold;
+  text-align: center;
+  line-height: 7mm;
+}
+.sec h2 {
+  font-size: 12.8pt;
+  line-height: 7mm;
+  color: #1F3864;
+  margin: 0;
+  font-weight: bold;
+}
+p {
+  margin: 0 0 2mm 0;
+  line-height: 1.31;
+  text-align: left;
+}
+.teamno {
+  font-size: 9.5pt;
+  margin: 0 0 1mm 0;
+}
+.teamno .fill {
+  border-bottom: 0.6pt solid #333333;
+  padding: 0 2mm;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0 0 1.2mm 0;
+  font-size: 8.0pt;
+}
+th, td {
+  border: 0.5pt solid #BFBFBF;
+  padding: 1.0mm 2.0mm;
+  vertical-align: top;
+  line-height: 1.18;
+}
+th {
+  background: #F2F2F2;
+  font-weight: bold;
+  text-align: left;
+}
+td.qty { text-align: center; }
+.cost {
+  font-size: 8.0pt;
+  font-style: italic;
+  color: #595959;
+  margin: 0 0 1mm 0;
+}
+ol {
+  margin: 0 0 1.5mm 0;
+  padding-left: 5.5mm;
+}
+li {
+  margin: 0 0 1.2mm 0;
+  line-height: 1.27;
+}
+.objectives { font-size: 8.8pt; }
+.notes {
+  font-size: 8.25pt;
+  line-height: 1.25;
+}
+.notes li { margin-bottom: 1.0mm; }
+.pagebreak { page-break-before: always; }
+img.diagram {
+  display: block;
+  width: 100%;
+  margin: 0 auto 1mm auto;
+}
+</style>
+</head>
+<body>
+
+<h1>Power-Fail-Safe Sensor Logger</h1>
+<div class="subtitle">Using Supercapacitor Hold-Up and EEPROM Event Persistence (Arduino Uno R3)</div>
+<div class="tagline">Power-fail detection, energy-backed event save and recovery verification</div>
+<div class="title-rule"></div>
+
+<div class="sec"><span class="num">1</span><h2>The Team No.</h2></div>
+<p class="teamno">Team No.: <span class="fill">Solo (1 member)</span></p>
+
+<div class="sec"><span class="num">2</span><h2>Registration Numbers and Names of Team Members</h2></div>
+<table>
+<thead>
+<tr><th style="width:8%">Sl.</th><th style="width:42%">Registration No.</th><th>Name</th></tr>
+</thead>
+<tbody>
+<tr><td>1</td><td>BL.SC.U4CSE24212</td><td>Dandu Surath Preetham</td></tr>
+</tbody>
+</table>
+
+<div class="sec"><span class="num">3</span><h2>The Problem Statement</h2></div>
+<p>Conventional sensor loggers lose the last reading when the power is interrupted. A brown-out or adapter unplug can reset the microcontroller before the current sample is written to non-volatile memory, and an interrupted write can leave a corrupt record. A simple threshold detector also cannot distinguish a genuine power failure from a temporary voltage dip. This project develops a low-cost Arduino Uno R3 logger that detects adapter loss, holds up the board with a 4 F supercapacitor bank for several seconds, saves the last temperature and timestamp to EEPROM with a CRC-16, displays the event on an OLED, and verifies the stored record when power returns.</p>
+
+<div class="sec"><span class="num">4</span><h2>The Objectives</h2></div>
+<ol class="objectives">
+<li>To measure temperature with a DS18B20 sensor and time with a DS3231 real-time clock.</li>
+<li>To detect adapter loss on A0 using a 10 kΩ / 10 kΩ divider placed on the adapter side of the OR-ing diode.</li>
+<li>To hold up the Arduino Uno with a 4× 1 F (4 F, 5.5 V) supercapacitor bank and a 1N5819 diode-OR power path.</li>
+<li>To save a CRC-16-protected record containing sequence number, temperature, timestamp and power-fail flag to the ATmega328P EEPROM.</li>
+<li>To display POWER OK, POWER LOST, SAVING, SAVED and RECOVERED states on the SSD1306 OLED, with LED and buzzer indication.</li>
+<li>To verify the stored record on the next boot and count power-fail events.</li>
+<li>To characterise hold-up time and recovery success over repeated unplug/replug cycles.</li>
+</ol>
+
+<div class="sec"><span class="num">5</span><h2>The Components Used</h2></div>
+<table>
+<thead>
+<tr><th style="width:38%">Component</th><th style="width:8%">Qty</th><th>Purpose</th></tr>
+</thead>
+<tbody>
+<tr><td>Arduino Uno R3 (ATmega328P)</td><td class="qty">1</td><td>Main controller; 10-bit ADC, 1 KB EEPROM</td></tr>
+<tr><td>1 F, 5.5 V supercapacitor</td><td class="qty">4</td><td>4 F hold-up bank; 3 F minimum, 4 F recommended</td></tr>
+<tr><td>1N5819 Schottky diode</td><td class="qty">2</td><td>D1 adapter OR-ing; D2 supercapacitor OR-ing</td></tr>
+<tr><td>10 Ω, 5 W resistor</td><td class="qty">1</td><td>Limits supercapacitor charge current to about 0.5 A</td></tr>
+<tr><td>10 kΩ ×4, 4.7 kΩ ×1, 220 Ω ×1</td><td class="qty">6</td><td>A0/A1 dividers, DS18B20 pull-up, LED current limit</td></tr>
+<tr><td>0.96-inch SSD1306 OLED, I²C</td><td class="qty">1</td><td>Local status and recovery display</td></tr>
+<tr><td>DS18B20 temperature sensor</td><td class="qty">1</td><td>Temperature measurement</td></tr>
+<tr><td>DS3231 RTC module + CR2032/LIR2032</td><td class="qty">1 each</td><td>Timestamp with coin-cell backup</td></tr>
+<tr><td>LED, active buzzer, push button</td><td class="qty">1 each</td><td>Status indication, audible alert, manual log</td></tr>
+<tr><td>Breadboard and jumper wires</td><td class="qty">1 set</td><td>Prototyping and connections</td></tr>
+<tr><td>2-pin / 4-pin terminal blocks</td><td class="qty">2 + 2</td><td>Supercapacitor bank connection; no-solder 4 F bank</td></tr>
+<tr><td>5 V, 2 A adapter + micro-USB breakout</td><td class="qty">1 each</td><td>Primary 5 V supply and power-path input</td></tr>
+<tr><td>USB-A to USB-B cable</td><td class="qty">1</td><td>Programming and serial monitor</td></tr>
+<tr><td>Multimeter</td><td class="qty">1</td><td>Voltage, continuity and hold-up measurements</td></tr>
+</tbody>
+</table>
+<p class="cost">Estimated build cost: ₹1,400–1,800 (indicative; excludes the Arduino Uno and multimeter already owned).</p>
+
+<div class="pagebreak"></div>
+
+<div class="sec"><span class="num">6</span><h2>The Circuit Diagram</h2></div>
+<img class="diagram" src="figures/project_report_block_diagram.png" alt="Power-Fail-Safe Sensor Logger system block diagram">
+
+<div class="sec"><span class="num">7</span><h2>Pin Connections</h2></div>
+<table>
+<thead>
+<tr><th style="width:18%">Arduino Uno pin</th><th style="width:32%">Connection</th><th style="width:18%">Arduino Uno pin</th><th>Connection</th></tr>
+</thead>
+<tbody>
+<tr><td>A4</td><td>OLED SDA and DS3231 SDA</td><td>D8</td><td>LED via 220 Ω to GND</td></tr>
+<tr><td>A5</td><td>OLED SCL and DS3231 SCL</td><td>D9</td><td>Active buzzer +; buzzer − to GND</td></tr>
+<tr><td>D4</td><td>DS18B20 DQ; 4.7 kΩ pull-up to 5 V</td><td>D2</td><td>Push button to GND; INPUT_PULLUP</td></tr>
+<tr><td>A0</td><td>Adapter-sense divider; 10 kΩ / 10 kΩ before D1</td><td>5V</td><td>5 V rail from D1/D2; not VIN</td></tr>
+<tr><td>A1</td><td>Supercapacitor-sense divider; 10 kΩ / 10 kΩ from SC+</td><td>GND</td><td>Common ground</td></tr>
+</tbody>
+</table>
+
+<div class="sec"><span class="num">8</span><h2>Notes</h2></div>
+<ol class="notes">
+<li><b>Power path:</b> 5 V adapter → D1 (1N5819) → 5 V rail → Uno 5V pin; adapter → 10 Ω, 5 W → SC+ → D2 (1N5819) → 5 V rail; SC− → GND. The stripe on both diodes is the cathode and faces the 5 V rail.</li>
+<li><b>Adapter sense:</b> the A0 divider must be on the adapter side of D1. If it is after D1, the supercapacitor holds A0 high and the power failure is missed.</li>
+<li><b>Supercapacitor bank:</b> 4× 1 F, 5.5 V in parallel = 4 F. Use 3 F minimum; 4 F is recommended for a reliable demo. Charge time with the 10 Ω resistor is about 2–3 minutes.</li>
+<li><b>Hold-up:</b> the Uno 5V pin must stay above about 4.5 V. A 1N5819 is required; a 1N4007 or RL207 drops too much voltage. Expect roughly 4–6 s with 4 F at 70–80 mA.</li>
+<li><b>Firmware:</b> Arduino IDE; Adafruit GFX, Adafruit SSD1306, OneWire, DallasTemperature and RTClib libraries; EEPROM and avr/wdt are included with the Arduino core. Serial monitor at 115200 baud.</li>
+<li><b>Demo sequence:</b> POWER OK → unplug adapter → POWER LOST → SAVING → SAVED → plug back in → RECOVERED with the last temperature and timestamp; the PF count increments. Unplug USB for the real test; otherwise the Uno stays powered by USB.</li>
+<li><b>Storage:</b> the EEPROM record contains a magic value, sequence number, temperature, timestamp, power-fail flag and CRC-16. Recovery validates the CRC before displaying the record.</li>
+<li><b>Safety:</b> 5 V only; observe supercapacitor polarity (stripe = negative); do not short SC+ to SC−; the 10 Ω resistor gets warm during charging; do not connect USB and the external 5 V rail at the same time.</li>
+</ol>
+
+</body>
+</html>

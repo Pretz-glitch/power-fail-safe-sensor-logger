@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Project Proposal — Power-Fail-Safe Sensor Logger</title>
+<style>
+@page { size: A4; margin: 14mm 14mm; }
+body { font-family: 'DejaVu Sans', Arial, sans-serif; font-size: 9.8pt; line-height: 1.34; color: #111; max-width: 192mm; margin: auto; }
+h1 { font-size: 16.5pt; text-align: center; margin: 0 0 2pt 0; line-height: 1.15; }
+h2 { font-size: 11pt; margin-top: 10pt; margin-bottom: 3pt; border-bottom: 1px solid #c9d3e3; padding-bottom: 2pt; color: #1f3864; }
+p { margin: 3pt 0; text-align: left; }
+table { border-collapse: collapse; width: 100%; margin: 4pt 0; font-size: 8.4pt; }
+th, td { border: 1px solid #999; padding: 3px 5px; vertical-align: top; }
+th { background: #e8f1fb; text-align: left; }
+code { font-family: 'DejaVu Sans Mono', monospace; background: #f4f4f4; padding: 1px 2px; font-size: 8.5pt; }
+pre { background: #f7f7f7; border: 1px solid #ddd; padding: 5px; overflow-x: auto; font-size: 8pt; line-height: 1.28; page-break-inside: avoid; }
+pre code { background: none; padding: 0; }
+img { width: 168mm; max-width: 100%; height: auto; display: block; margin: 6px auto 4px auto; page-break-inside: avoid; }
+blockquote { border-left: 4px solid #2F5597; margin: 5pt 0; padding: 4pt 8pt; background: #f5f8fc; }
+hr { border: none; border-top: 1px solid #ccc; margin: 7pt 0; }
+ul, ol { margin: 2pt 0 2pt 15pt; }
+li { margin: 1pt 0; }
+</style>
+</head>
+<body>
+<h1>Power-Fail-Safe Sensor Logger<br>with Supercapacitor Hold-Up</h1>
+<p><strong>Project Proposal for Approval — Embedded Systems Mini-Project</strong></p>
+<p><strong>Student:</strong> Dandu Surath Preetham<br>
+<strong>Roll number:</strong> BL.SC.U4CSE24212</p>
+<hr>
+<h2>1. Problem Statement</h2>
+<p>Embedded data loggers are often deployed where the power supply is unreliable. A sudden loss of the 5 V supply can interrupt a non-volatile memory write, corrupt the stored record, or leave the controller in an undefined state. A battery-backed UPS solves this problem but adds cost, charging circuitry, weight, and maintenance.</p>
+<p>The project addresses the narrower and practically important case of a <strong>short power interruption</strong>:</p>
+<blockquote>
+<p>When the adapter is lost, the logger should have enough energy to finish the critical write, store a valid record, and recover that record on the next boot — without a battery.</p>
+</blockquote>
+<p>Most low-cost student loggers assume that power stays on. This project treats power failure as a first-class design event.</p>
+<hr>
+<h2>2. Proposed Solution</h2>
+<p>A low-cost <strong>power-fail-safe sensor logger</strong> detects adapter loss, holds up the electronics with a <strong>supercapacitor</strong>, saves the last reading and timestamp to non-volatile memory with a CRC, and restores the record on the next boot.</p>
+<p><img alt="Figure 1: System block diagram" src="figures/proposal_block_diagram.png"></p>
+<p><em>Figure 1: System block diagram. D1/D2 provide adapter OR-ing; the 10 Ω resistor limits the supercapacitor charge current; the adapter-sense divider is before D1.</em></p>
+<p><strong>Module connections:</strong></p>
+<table>
+<thead>
+<tr>
+<th>ESP32 pin</th>
+<th>Connects to</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>3V3</td>
+<td>OLED VCC, DS3231 VCC, DS18B20 VDD, 4.7 kΩ pull-up</td>
+<td>3.3 V rail</td>
+</tr>
+<tr>
+<td>GND</td>
+<td>OLED GND, DS3231 GND, DS18B20 GND, LED cathode, buzzer, button, dividers, SC−</td>
+<td>Common ground</td>
+</tr>
+<tr>
+<td>GPIO21</td>
+<td>OLED SDA, DS3231 SDA</td>
+<td>I²C data</td>
+</tr>
+<tr>
+<td>GPIO22</td>
+<td>OLED SCL, DS3231 SCL</td>
+<td>I²C clock</td>
+</tr>
+<tr>
+<td>GPIO4</td>
+<td>DS18B20 DQ</td>
+<td>4.7 kΩ pull-up to 3.3 V</td>
+</tr>
+<tr>
+<td>GPIO34</td>
+<td>Adapter-sense divider midpoint</td>
+<td>ADC; divider before D1</td>
+</tr>
+<tr>
+<td>GPIO35</td>
+<td>Supercapacitor-sense divider midpoint</td>
+<td>ADC</td>
+</tr>
+<tr>
+<td>GPIO26</td>
+<td>220 Ω → LED → GND</td>
+<td>Status LED</td>
+</tr>
+<tr>
+<td>GPIO25</td>
+<td>Buzzer → GND</td>
+<td>Optional</td>
+</tr>
+<tr>
+<td>GPIO16</td>
+<td>Button → GND</td>
+<td>Optional</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>With the adapter present, D1 supplies the board and the supercapacitor charges through the 10 Ω resistor.</li>
+<li>When the adapter is removed, D1 blocks backfeed and D2 lets the supercapacitor supply the board.</li>
+<li>The adapter-sense divider is <strong>before D1</strong>, so it collapses to 0 V immediately when the adapter is unplugged.</li>
+<li>The ESP32 saves a CRC-protected NVS record and displays the status on an OLED.</li>
+</ul>
+<p>Firmware sequence: <code>RUN → POWER_FAIL → SAVE → DISPLAY → WAIT → RECOVER → RUN</code>.</p>
+<p>The record contains a magic number, sequence number, temperature, timestamp, power-fail flag, and CRC16. On boot, the firmware validates the record; a valid record with the power-fail flag set is displayed as <code>RECOVERED</code>.</p>
+<hr>
+<h2>3. Objectives</h2>
+<ol>
+<li>Detect the loss of the 5 V adapter within tens of milliseconds.</li>
+<li>Hold up the ESP32 long enough to complete a non-volatile write.</li>
+<li>Save the last temperature, timestamp, sequence number, power-fail flag, and CRC.</li>
+<li>Validate the record on boot and display it as <code>RECOVERED</code>.</li>
+<li>Measure the hold-up time, charge time, and recovery success rate over 20 cycles.</li>
+</ol>
+<hr>
+<h2>4. Hardware and Software</h2>
+<table>
+<thead>
+<tr>
+<th>Component (qty)</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ESP32 DevKit V1 ×1</td>
+<td>Controller; built-in NVS; USB programming</td>
+</tr>
+<tr>
+<td>Supercapacitor, 5.5 V, 5 F ×1</td>
+<td>Hold-up; 4×1.5 F parallel is an alternative</td>
+</tr>
+<tr>
+<td>1N5819 Schottky diode ×2</td>
+<td>Power OR-ing (D1, D2)</td>
+</tr>
+<tr>
+<td>10 Ω, 5 W resistor ×1</td>
+<td>Charge-current limit</td>
+</tr>
+<tr>
+<td>Resistor kit: 10 kΩ ×4, 4.7 kΩ ×1, 220 Ω ×2</td>
+<td>Dividers, DS18B20 pull-up, LED</td>
+</tr>
+<tr>
+<td>0.96" SSD1306 OLED, I²C ×1</td>
+<td>Status/recovery display</td>
+</tr>
+<tr>
+<td>DS18B20 temperature sensor ×1</td>
+<td>Logged quantity</td>
+</tr>
+<tr>
+<td>DS3231 RTC module + coin cell ×1</td>
+<td>Timestamp; coin-cell backup</td>
+</tr>
+<tr>
+<td>Breadboard, terminal block, jumpers, 5 V adapter, USB cable, multimeter ×1 set</td>
+<td>Prototyping, power, measurement</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Software:</strong> Arduino IDE with the ESP32 core; Adafruit GFX, Adafruit SSD1306, OneWire, DallasTemperature, RTClib, and the ESP32 <code>Preferences</code> library.</p>
+<hr>
+<h2>5. Demonstration and Expected Outcomes</h2>
+<ol>
+<li>Power the board from the 5 V adapter. The OLED shows live temperature, time, supercapacitor voltage, and power-fail count.</li>
+<li>Unplug the adapter for about 2 seconds.</li>
+<li>The OLED shows <code>POWER LOST</code> → <code>SAVING...</code> → <code>SAVED</code>.</li>
+<li>Plug the adapter back in. The ESP32 restarts and shows <code>RECOVERED</code> with the last temperature and timestamp.</li>
+<li>Repeat the unplug/replug cycle 20 times and measure the hold-up time.</li>
+</ol>
+<p><strong>Deliverables:</strong> a working prototype, a measured hold-up time, a 20-cycle recovery count, a CRC record-integrity check, a complete report, and a viva-ready explanation. No result is claimed before the prototype is tested.</p>
+<hr>
+<h2>6. Novelty and Limitations</h2>
+<p>Supercapacitor backup, brownout detection, NVS/EEPROM, and CRC-protected records are established techniques. This project <strong>does not claim a new concept</strong>. The contribution is a <strong>low-cost, explainable power-fail architecture</strong> with a discrete diode-OR path, a deterministic save/recover state machine, a CRC-protected NVS record, and a measured hold-up/recovery evaluation.</p>
+<p>The simple diode-OR path does not fully isolate the supercapacitor when the adapter is present; this is documented as a prototype limitation. A power-path switch is future work.</p>
+<hr>
+<h2>7. References</h2>
+<ol>
+<li>Espressif Systems, <em>ESP32 Series Datasheet</em>.</li>
+<li>Espressif Systems, <em>Non-Volatile Storage (NVS) Library</em> documentation.</li>
+<li>Analog Devices/Maxim, <em>DS3231 RTC</em> datasheet.</li>
+<li>Analog Devices/Maxim, <em>DS18B20 1-Wire Digital Thermometer</em> datasheet.</li>
+<li>Texas Instruments, <em>AMS1117 1-A Low-Dropout Voltage Regulator</em> datasheet.</li>
+<li>Vishay, <em>1N5819 Schottky Barrier Rectifier</em> datasheet.</li>
+</ol>
+</body>
+</html>

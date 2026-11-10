@@ -1,0 +1,2158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Power-Fail-Safe Sensor Logger — Report</title>
+<style>
+@page { size: A4; margin: 18mm 16mm; }
+body { font-family: 'DejaVu Sans', Arial, sans-serif; font-size: 10.5pt; line-height: 1.45; color: #111; max-width: 190mm; margin: auto; }
+h1 { font-size: 21pt; text-align: center; margin: 0 0 6pt 0; line-height: 1.2; }
+h2 { font-size: 14pt; margin-top: 20pt; border-bottom: 1px solid #c9d3e3; padding-bottom: 3pt; color: #1f3864; }
+h3 { font-size: 11.5pt; margin-top: 14pt; color: #1f3864; }
+p { margin: 5pt 0; text-align: justify; }
+table { border-collapse: collapse; width: 100%; margin: 8pt 0; font-size: 8.8pt; }
+th, td { border: 1px solid #999; padding: 4px 6px; vertical-align: top; }
+th { background: #e8f1fb; text-align: left; }
+code { font-family: 'DejaVu Sans Mono', monospace; background: #f4f4f4; padding: 1px 3px; font-size: 8.8pt; }
+pre { background: #f7f7f7; border: 1px solid #ddd; padding: 8px; overflow-x: auto; font-size: 8.3pt; line-height: 1.35; page-break-inside: avoid; }
+pre code { background: none; padding: 0; }
+img { max-width: 100%; height: auto; display: block; margin: 10px auto; page-break-inside: avoid; }
+blockquote { border-left: 4px solid #2F5597; margin: 10px 0; padding: 6px 12px; background: #f5f8fc; }
+hr { border: none; border-top: 1px solid #ccc; margin: 14px 0; }
+ul, ol { margin: 4pt 0 4pt 18pt; }
+li { margin: 2pt 0; }
+</style>
+</head>
+<body>
+<h1 id="power-fail-safe-sensor-logger-with-supercapacitor-hold-up">Power-Fail-Safe Sensor Logger with Supercapacitor Hold-Up</h1>
+<p><strong>Embedded Systems Mini-Project — Report Draft</strong></p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Student</strong></td>
+<td>[Your name]</td>
+</tr>
+<tr>
+<td><strong>Roll number</strong></td>
+<td>[Your roll number]</td>
+</tr>
+<tr>
+<td><strong>Department</strong></td>
+<td>[Your department]</td>
+</tr>
+<tr>
+<td><strong>Institution</strong></td>
+<td>[Your institution]</td>
+</tr>
+<tr>
+<td><strong>Guide</strong></td>
+<td>[Guide's name]</td>
+</tr>
+<tr>
+<td><strong>Academic year</strong></td>
+<td>2026–27</td>
+</tr>
+<tr>
+<td><strong>Submission date</strong></td>
+<td>[Date]</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="declaration">Declaration</h2>
+<p>I hereby declare that the project report entitled <strong>"Power-Fail-Safe Sensor Logger with Supercapacitor Hold-Up"</strong> is the result of my own work, carried out under the guidance of <strong>[Guide's name]</strong>, and has not been submitted for any other degree or examination. All sources of information and assistance have been acknowledged in the references.</p>
+<p><strong>Place:</strong> [City]<br>
+<strong>Date:</strong> [Date]<br>
+<strong>Signature:</strong> <strong><em>_</em></strong><strong><em>_</em></strong>______<br>
+<strong>Name:</strong> [Your name]</p>
+<hr>
+<h2 id="certificate">Certificate</h2>
+<p>This is to certify that <strong>[Your name]</strong>, bearing roll number <strong>[Roll number]</strong>, has satisfactorily completed the mini-project entitled <strong>"Power-Fail-Safe Sensor Logger with Supercapacitor Hold-Up"</strong> in partial fulfilment of the requirements of the <strong>[Course name]</strong> course during the academic year <strong>2026–27</strong>.</p>
+<p><strong>Guide:</strong> <strong><em>_</em></strong><strong><em>_</em></strong><strong><em>_</em>_<br>
+<strong>Head of Department:</strong> </strong><strong><em>_</em></strong><strong><em>_</em></strong><strong><em>_<br>
+<strong>Examiner:</strong> </em></strong><strong><em>_</em></strong><strong><em>_</em></strong><strong><em><br>
+<strong>Date:</strong> </em></strong><strong><em>_</em></strong><strong><em>_</em></strong>___</p>
+<hr>
+<blockquote>
+<p><strong>How to use this draft</strong></p>
+<p>This is a complete report skeleton, not a finished submission. Replace every <code>[FILL ...]</code> with your own measurements and institution details. The example rows in the results tables show the format, not real data. Do not submit placeholder numbers as results.</p>
+<p>The firmware is in <code>power_fail_logger_firmware/power_fail_logger_firmware.ino</code>. The viva question bank is in <code>power_fail_logger_viva_qa.md</code>.</p>
+</blockquote>
+<hr>
+<h2 id="table-of-contents">Table of Contents</h2>
+<ol>
+<li><a href="#abstract">Abstract</a></li>
+<li><a href="#1-introduction">Introduction</a></li>
+<li><a href="#2-background-and-related-work">Background and Related Work</a></li>
+<li><a href="#3-system-requirements">System Requirements</a></li>
+<li><a href="#4-system-design">System Design</a></li>
+<li><a href="#5-methodology">Methodology</a></li>
+<li><a href="#6-implementation">Implementation</a></li>
+<li><a href="#7-testing">Testing</a></li>
+<li><a href="#8-results">Results</a></li>
+<li><a href="#9-discussion">Discussion</a></li>
+<li><a href="#10-novelty-and-contributions">Novelty and Contributions</a></li>
+<li><a href="#11-limitations">Limitations</a></li>
+<li><a href="#12-conclusion-and-future-work">Conclusion and Future Work</a></li>
+<li><a href="#references">References</a></li>
+<li><a href="#appendix-a-bill-of-materials">Appendix A: Bill of Materials</a></li>
+<li><a href="#appendix-b-wiring-and-pin-map">Appendix B: Wiring and Pin Map</a></li>
+<li><a href="#appendix-c-firmware">Appendix C: Firmware</a></li>
+<li><a href="#appendix-d-viva-questions">Appendix D: Viva Questions</a></li>
+<li><a href="#appendix-e-demo-script">Appendix E: Demo Script</a></li>
+<li><a href="#appendix-f-seven-day-plan">Appendix F: Seven-Day Plan</a></li>
+<li><a href="#appendix-g-troubleshooting">Appendix G: Troubleshooting</a></li>
+<li><a href="#appendix-h-python-analysis-script">Appendix H: Python Analysis Script</a></li>
+<li><a href="#appendix-i-submission-checklist">Appendix I: Submission Checklist</a></li>
+<li><a href="#appendix-j-abbreviations">Appendix J: Abbreviations</a></li>
+<li><a href="#appendix-k-design-review--anomalies-found-and-fixed">Appendix K: Design Review — Anomalies Found and Fixed</a></li>
+</ol>
+<h3 id="list-of-figures">List of Figures</h3>
+<table>
+<thead>
+<tr>
+<th>Figure</th>
+<th>Title</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>4.1</td>
+<td>System block diagram</td>
+</tr>
+<tr>
+<td>4.2</td>
+<td>Power path: adapter OR-ing, supercapacitor hold-up, sense dividers</td>
+</tr>
+<tr>
+<td>5.1</td>
+<td>Power-fail state machine</td>
+</tr>
+<tr>
+<td>5.2</td>
+<td>Hold-up timeline</td>
+</tr>
+<tr>
+<td>5.3</td>
+<td>Calculated hold-up time vs capacitance</td>
+</tr>
+<tr>
+<td>8.1</td>
+<td>Measured supercapacitor voltage during a power-fail event (to be inserted)</td>
+</tr>
+<tr>
+<td>8.2</td>
+<td>OLED recovery screen (to be photographed)</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="abstract">Abstract</h2>
+<p>Embedded data loggers are often deployed in places where power is unreliable. A sudden loss of supply can interrupt a non-volatile memory write, corrupt a file system, or leave the system in an unknown state. This project presents a low-cost <strong>power-fail-safe sensor logger</strong> that detects the loss of its 5 V adapter, uses a <strong>5 F, 5.5 V supercapacitor</strong> to hold up the electronics for several seconds, writes the last temperature reading and timestamp to non-volatile storage with a CRC, displays a clear "saved" message, and restores the record on the next boot.</p>
+<p>The prototype uses an ESP32 DevKit, a DS18B20 temperature sensor, a DS3231 real-time clock, an SSD1306 OLED, and a discrete diode-OR power path. The firmware runs a five-state power-fail sequence, uses the ESP32's NVS through the <code>Preferences</code> library, and protects each record with a CRC16. The design was validated with repeated unplug/replug cycles, hold-up measurements, and record-integrity checks. The measured hold-up time was <code>[FILL]</code> s at <code>[FILL]</code> F, and <code>[FILL]</code> of <code>[FILL]</code> recovery cycles restored a valid record. The project is a proof of concept; it holds up the system for seconds, not hours, and is not a replacement for a battery-backed UPS.</p>
+<p><strong>Keywords:</strong> power-fail detection, supercapacitor, hold-up time, ESP32, NVS, CRC, dependable embedded systems, data integrity.</p>
+<hr>
+<h2 id="1-introduction">1. Introduction</h2>
+<h3 id="11-problem-statement">1.1 Problem statement</h3>
+<p>An embedded logger usually assumes that power will stay on. In the real world, power can disappear in the middle of a sensor conversion, an EEPROM write, or a file-system update. The result can be:</p>
+<ul>
+<li>a lost or corrupted record,</li>
+<li>a file system that no longer mounts,</li>
+<li>a device that boots into an unknown state,</li>
+<li>a silent gap in a data series that the user cannot detect.</li>
+</ul>
+<p>A conventional solution is a battery-backed UPS. That is effective but adds cost, weight, charging circuitry, and battery-maintenance issues. For a short power interruption, a <strong>supercapacitor</strong> can provide just enough hold-up to finish the critical write and shut down cleanly.</p>
+<h3 id="12-motivation">1.2 Motivation</h3>
+<p>The project is motivated by a simple question:</p>
+<blockquote>
+<p>"What should an embedded logger do in the few seconds between losing power and shutting down?"</p>
+</blockquote>
+<p>The answer is a <strong>deterministic power-fail sequence</strong>: detect the loss, stop the sensor, save a CRC-protected record, tell the user what happened, and recover the record on the next boot. This is a core dependable-systems problem, and it can be demonstrated reliably with a plug-and-unplug test.</p>
+<h3 id="13-objectives">1.3 Objectives</h3>
+<ol>
+<li>Detect the loss of the 5 V adapter within tens of milliseconds.</li>
+<li>Hold up the ESP32 and peripherals long enough to complete a non-volatile write.</li>
+<li>Save the last temperature reading, timestamp, sequence number, and a power-fail flag.</li>
+<li>Protect the record with a CRC and validate it on boot.</li>
+<li>Display a clear "power lost / saved / recovered" sequence on the OLED.</li>
+<li>Measure the hold-up time and the recovery success rate.</li>
+<li>Document the design, calculations, limitations, and future work.</li>
+</ol>
+<h3 id="14-scope-and-delimitation">1.4 Scope and delimitation</h3>
+<p><strong>In scope:</strong></p>
+<ul>
+<li>A single sensor node with one temperature sensor and one RTC.</li>
+<li>A discrete diode-OR power path with a supercapacitor.</li>
+<li>NVS/EEPROM storage with CRC.</li>
+<li>Repeated unplug/replug tests.</li>
+<li>Hold-up-time and recovery measurements.</li>
+</ul>
+<p><strong>Out of scope:</strong></p>
+<ul>
+<li>A full UPS or battery-management system.</li>
+<li>Hours of backup time.</li>
+<li>A file system, SD card, or multi-record database.</li>
+<li>Mains-voltage measurement or isolation.</li>
+<li>Medical, industrial, or safety certification.</li>
+<li>Human-subject or field trials.</li>
+</ul>
+<p>The prototype is a <strong>proof of concept</strong> for the power-fail architecture, not a finished product.</p>
+<hr>
+<h2 id="2-background-and-related-work">2. Background and Related Work</h2>
+<h3 id="21-power-failure-in-embedded-systems">2.1 Power failure in embedded systems</h3>
+<p>A power failure is not a single event. The supply can:</p>
+<ul>
+<li>drop slowly (brownout),</li>
+<li>collapse quickly (adapter unplug),</li>
+<li>bounce during reconnect,</li>
+<li>be interrupted for milliseconds or hours.</li>
+</ul>
+<p>The firmware must distinguish a real loss from noise, finish any critical operation, and leave the non-volatile state consistent. A <strong>power-fail interrupt</strong> or an ADC threshold on the adapter voltage is a common low-cost detection method.</p>
+<h3 id="22-energy-storage-batteries-vs-supercapacitors">2.2 Energy storage: batteries vs supercapacitors</h3>
+<table>
+<thead>
+<tr>
+<th>Property</th>
+<th>Battery (Li-ion/LiPo)</th>
+<th>Supercapacitor</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Energy density</td>
+<td>High</td>
+<td>Low</td>
+</tr>
+<tr>
+<td>Power density</td>
+<td>Medium</td>
+<td>High</td>
+</tr>
+<tr>
+<td>Cycle life</td>
+<td>Hundreds to thousands</td>
+<td>Hundreds of thousands to millions</td>
+</tr>
+<tr>
+<td>Charge time</td>
+<td>Hours</td>
+<td>Seconds to minutes</td>
+</tr>
+<tr>
+<td>Self-discharge</td>
+<td>Low</td>
+<td>Higher</td>
+</tr>
+<tr>
+<td>ESR</td>
+<td>Higher</td>
+<td>Low</td>
+</tr>
+<tr>
+<td>Best use</td>
+<td>Long backup</td>
+<td>Short hold-up, high current</td>
+</tr>
+</tbody>
+</table>
+<p>A supercapacitor is a poor battery but an excellent <strong>short-term hold-up</strong> device. For a logger that needs a few seconds to save a record, it is a good fit.</p>
+<h3 id="23-power-path-options">2.3 Power path options</h3>
+<table>
+<thead>
+<tr>
+<th>Option</th>
+<th>How it works</th>
+<th>Pros</th>
+<th>Cons</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Diode OR</strong></td>
+<td>Adapter and backup each feed the load through a diode</td>
+<td>Simple, cheap, no control</td>
+<td>Diode drop, no isolation, backup can supply load while adapter is present</td>
+</tr>
+<tr>
+<td><strong>Ideal diode / power-path switch</strong></td>
+<td>MOSFET replaces the diode; control selects the source</td>
+<td>Low drop, true isolation</td>
+<td>More parts, more design effort</td>
+</tr>
+<tr>
+<td><strong>Boost converter</strong></td>
+<td>Supercapacitor feeds a boost that maintains 5 V</td>
+<td>Uses more of the capacitor's energy</td>
+<td>Extra module, EMI, efficiency loss</td>
+</tr>
+<tr>
+<td><strong>Battery + charger</strong></td>
+<td>Battery powers the load when adapter is lost</td>
+<td>Long backup</td>
+<td>Battery maintenance, charging, safety</td>
+</tr>
+</tbody>
+</table>
+<p>This project uses a <strong>diode OR</strong> for simplicity and a <strong>5 V boost</strong> as an optional upgrade for longer hold-up.</p>
+<h3 id="24-non-volatile-storage">2.4 Non-volatile storage</h3>
+<table>
+<thead>
+<tr>
+<th>Technology</th>
+<th>Write time</th>
+<th>Endurance</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>EEPROM</td>
+<td>~3.3 ms/byte</td>
+<td>~100k cycles</td>
+<td>Simple, byte-addressable</td>
+</tr>
+<tr>
+<td>Flash / NVS</td>
+<td>~ms to tens of ms per commit</td>
+<td>~10k–100k cycles, wear-leveled</td>
+<td>ESP32 NVS; good for small records</td>
+</tr>
+<tr>
+<td>FRAM</td>
+<td>Fast</td>
+<td>Very high</td>
+<td>Expensive, less common</td>
+</tr>
+<tr>
+<td>SD card / file system</td>
+<td>Slow, complex</td>
+<td>Limited</td>
+<td>Risk of corruption on power loss</td>
+</tr>
+</tbody>
+</table>
+<p>The ESP32's NVS is used because it is built in, wear-leveled, and adequate for a small record. A CRC protects against a partially written record.</p>
+<h3 id="25-related-work">2.5 Related work</h3>
+<ul>
+<li>Commercial UPS modules and supercapacitor backup modules exist.</li>
+<li>Brownout detectors and power-fail interrupts are standard microcontroller features.</li>
+<li>Power-fail-safe file systems and journaling protect storage during sudden loss.</li>
+<li>Research and industry use supercapacitors for short-term backup in meters, loggers, and automotive electronics.</li>
+</ul>
+<p>The project does <strong>not</strong> claim a new concept. Its contribution is a low-cost, explainable implementation with a measured hold-up time, a CRC-protected record, and a deterministic recovery sequence.</p>
+<hr>
+<h2 id="3-system-requirements">3. System Requirements</h2>
+<h3 id="31-functional-requirements">3.1 Functional requirements</h3>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Requirement</th>
+<th>Acceptance criterion</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>FR1</td>
+<td>Detect adapter loss</td>
+<td>Detect a drop below 3.5 V within 20 ms</td>
+</tr>
+<tr>
+<td>FR2</td>
+<td>Hold up the system</td>
+<td>At least 5 s at the chosen capacitance/load</td>
+</tr>
+<tr>
+<td>FR3</td>
+<td>Save a record</td>
+<td>Temperature, timestamp, sequence number, power-fail flag, CRC</td>
+</tr>
+<tr>
+<td>FR4</td>
+<td>Validate on boot</td>
+<td>Reject a record with a bad magic number or CRC</td>
+</tr>
+<tr>
+<td>FR5</td>
+<td>Display the sequence</td>
+<td><code>POWER LOST</code> → <code>SAVED</code> → <code>RECOVERED</code></td>
+</tr>
+<tr>
+<td>FR6</td>
+<td>Preserve the record</td>
+<td>The last record survives a power cycle</td>
+</tr>
+<tr>
+<td>FR7</td>
+<td>Count power failures</td>
+<td>Increment a persistent counter</td>
+</tr>
+<tr>
+<td>FR8</td>
+<td>Recover automatically</td>
+<td>Show the record on the next boot without user action</td>
+</tr>
+</tbody>
+</table>
+<h3 id="32-non-functional-requirements">3.2 Non-functional requirements</h3>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Requirement</th>
+<th>Target</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>NR1</td>
+<td>Cost</td>
+<td>Approximately ₹2,500 or less, including a 5 F capacitor and adapter</td>
+</tr>
+<tr>
+<td>NR2</td>
+<td>Hold-up</td>
+<td>≥5 s at 5 F and the measured load</td>
+</tr>
+<tr>
+<td>NR3</td>
+<td>Recovery success</td>
+<td>20/20 repeated cycles</td>
+</tr>
+<tr>
+<td>NR4</td>
+<td>Record integrity</td>
+<td>CRC detects a corrupted record</td>
+</tr>
+<tr>
+<td>NR5</td>
+<td>Safety</td>
+<td>5 V USB only; no mains, no battery charging</td>
+</tr>
+<tr>
+<td>NR6</td>
+<td>Reproducibility</td>
+<td>Another student can rebuild it from the BOM and wiring table</td>
+</tr>
+</tbody>
+</table>
+<h3 id="33-constraints">3.3 Constraints</h3>
+<ul>
+<li>The prototype uses a 5 V adapter; the "power failure" is an unplug event, not a mains transient.</li>
+<li>The supercapacitor holds seconds, not hours.</li>
+<li>The simple diode OR does not isolate the supercapacitor when the adapter is present.</li>
+<li>The ESP32 DevKit's LDO limits the usable supercapacitor voltage range.</li>
+<li>The prototype is a proof of concept, not a certified product.</li>
+</ul>
+<hr>
+<h2 id="4-system-design">4. System Design</h2>
+<h3 id="41-block-diagram">4.1 Block diagram</h3>
+<p><img alt="Figure 4.1: System block diagram" src="figures/block_diagram.png"></p>
+<p>The adapter feeds the 5 V rail through D1 and charges the supercapacitor through a 10 Ω, 5 W resistor. The supercapacitor feeds the rail through D2 when the adapter is removed. The ESP32 reads the adapter voltage on GPIO34 and the supercapacitor voltage on GPIO35, and drives the OLED, DS18B20, and DS3231.</p>
+<h3 id="42-power-path">4.2 Power path</h3>
+<p><img alt="Figure 4.2: Power path" src="figures/power_path.png"></p>
+<pre><code class="language-text">5 V adapter ──► D1 (1N5819) ──► V_LOAD ──► ESP32 5V pin
+     │                              ▲
+     └── 10 Ω 5 W ──► SC+ ──► D2 ───┘
+                       │
+                      SC− ── GND
+</code></pre>
+<p><strong>How it works:</strong></p>
+<ol>
+<li>With the adapter present, D1 supplies V_LOAD and the supercapacitor charges through the 10 Ω resistor.</li>
+<li>When the adapter is removed, D1 blocks backfeed and D2 lets the supercapacitor supply V_LOAD.</li>
+<li>The adapter-sense divider is connected <strong>before D1</strong>. If it were after D1, the supercapacitor would hold the divider high and the firmware would never see the power failure.</li>
+<li>The supercapacitor-sense divider lets the firmware display the hold-up voltage.</li>
+</ol>
+<p><strong>Important:</strong> the adapter-sense divider must be on the adapter side of D1. This is the single most common wiring mistake in this project.</p>
+<h3 id="43-component-selection">4.3 Component selection</h3>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Role</th>
+<th>Key specification</th>
+<th>Why chosen</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>ESP32 DevKit V1</strong></td>
+<td>Controller</td>
+<td>3.3 V, 240 MHz, USB, NVS</td>
+<td>Built-in NVS, USB programming, enough speed and memory</td>
+</tr>
+<tr>
+<td><strong>5 F, 5.5 V supercapacitor</strong></td>
+<td>Hold-up</td>
+<td>5 F, 5.5 V, low ESR</td>
+<td>Seconds of hold-up at a low cost</td>
+</tr>
+<tr>
+<td><strong>1N5819 Schottky ×2</strong></td>
+<td>OR-ing</td>
+<td>1 A, ~0.3 V forward drop</td>
+<td>Low drop, cheap, adequate current</td>
+</tr>
+<tr>
+<td><strong>10 Ω, 5 W resistor</strong></td>
+<td>Charge limit</td>
+<td>0.5 A initial, 2.5 W peak</td>
+<td>Limits inrush; 5 W rating gives margin</td>
+</tr>
+<tr>
+<td><strong>DS18B20</strong></td>
+<td>Sensor</td>
+<td>Digital, ±0.5 °C, 1-Wire</td>
+<td>Simple, reliable, meaningful data</td>
+</tr>
+<tr>
+<td><strong>DS3231 RTC</strong></td>
+<td>Timestamp</td>
+<td>I²C, coin-cell backup</td>
+<td>Keeps time across power loss</td>
+</tr>
+<tr>
+<td><strong>SSD1306 OLED</strong></td>
+<td>Display</td>
+<td>128×64, I²C</td>
+<td>Shows the power-fail sequence clearly</td>
+</tr>
+<tr>
+<td><strong>10 kΩ ×4</strong></td>
+<td>Dividers</td>
+<td>10k/10k</td>
+<td>Scales 5 V to 2.5 V for the ADC</td>
+</tr>
+<tr>
+<td><strong>4.7 kΩ</strong></td>
+<td>DS18B20 pull-up</td>
+<td>3.3 V</td>
+<td>Required for 1-Wire</td>
+</tr>
+<tr>
+<td><strong>5 V, 1 A adapter</strong></td>
+<td>Primary power</td>
+<td>5 V, 1 A</td>
+<td>Enough for the ESP32, OLED, and charge current</td>
+</tr>
+</tbody>
+</table>
+<h3 id="44-wiring-and-pin-map">4.4 Wiring and pin map</h3>
+<table>
+<thead>
+<tr>
+<th>ESP32 pin</th>
+<th>Connected to</th>
+<th>Function</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>3V3</td>
+<td>OLED VCC, DS3231 VCC, DS18B20 VDD, 4.7 kΩ pull-up</td>
+<td>3.3 V rail</td>
+</tr>
+<tr>
+<td>GND</td>
+<td>OLED GND, DS3231 GND, DS18B20 GND, dividers, supercapacitor −</td>
+<td>Common ground</td>
+</tr>
+<tr>
+<td>GPIO21</td>
+<td>OLED SDA, DS3231 SDA</td>
+<td>I²C data</td>
+</tr>
+<tr>
+<td>GPIO22</td>
+<td>OLED SCL, DS3231 SCL</td>
+<td>I²C clock</td>
+</tr>
+<tr>
+<td>GPIO4</td>
+<td>DS18B20 DQ</td>
+<td>1-Wire data</td>
+</tr>
+<tr>
+<td>GPIO34</td>
+<td>Adapter-sense divider midpoint</td>
+<td>ADC input, adapter voltage</td>
+</tr>
+<tr>
+<td>GPIO35</td>
+<td>Supercapacitor-sense divider midpoint</td>
+<td>ADC input, hold-up voltage</td>
+</tr>
+<tr>
+<td>GPIO26</td>
+<td>LED + 220 Ω</td>
+<td>Status/trigger</td>
+</tr>
+<tr>
+<td>GPIO25</td>
+<td>Buzzer +</td>
+<td>Optional alert</td>
+</tr>
+<tr>
+<td>GPIO16</td>
+<td>Button to GND</td>
+<td>Optional manual log</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Power path:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Connection</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>5 V adapter + → D1 anode</td>
+<td>D1 cathode → 5 V rail</td>
+</tr>
+<tr>
+<td>5 V adapter + → 10 Ω 5 W → SC+</td>
+<td>Charge path</td>
+</tr>
+<tr>
+<td>SC+ → D2 anode</td>
+<td>D2 cathode → 5 V rail</td>
+</tr>
+<tr>
+<td>SC− → GND</td>
+<td>Common ground</td>
+</tr>
+<tr>
+<td>5 V rail → ESP32 5V pin</td>
+<td><strong>Unplug USB during the demo</strong></td>
+</tr>
+<tr>
+<td>Adapter + → 10k → GPIO34 → 10k → GND</td>
+<td>Divider <strong>before D1</strong></td>
+</tr>
+<tr>
+<td>SC+ → 10k → GPIO35 → 10k → GND</td>
+<td>Supercapacitor voltage</td>
+</tr>
+</tbody>
+</table>
+<h3 id="45-power-budget">4.5 Power budget</h3>
+<table>
+<thead>
+<tr>
+<th>Block</th>
+<th style="text-align: right;">Current at 3.3 V</th>
+<th style="text-align: right;">Power</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ESP32 (WiFi off)</td>
+<td style="text-align: right;">~80 mA</td>
+<td style="text-align: right;">0.264 W</td>
+</tr>
+<tr>
+<td>OLED</td>
+<td style="text-align: right;">~20 mA</td>
+<td style="text-align: right;">0.066 W</td>
+</tr>
+<tr>
+<td>DS3231</td>
+<td style="text-align: right;">~1 mA</td>
+<td style="text-align: right;">0.003 W</td>
+</tr>
+<tr>
+<td>DS18B20</td>
+<td style="text-align: right;">~1 mA</td>
+<td style="text-align: right;">0.003 W</td>
+</tr>
+<tr>
+<td>LDO quiescent / losses</td>
+<td style="text-align: right;">~10 mA equivalent</td>
+<td style="text-align: right;">~0.033 W</td>
+</tr>
+<tr>
+<td><strong>Total</strong></td>
+<td style="text-align: right;"><strong>~110 mA</strong></td>
+<td style="text-align: right;"><strong>~0.37 W</strong></td>
+</tr>
+</tbody>
+</table>
+<p>For a conservative hold-up calculation, use <strong>0.5 W</strong> at the 5 V rail. The measured value will be lower or higher depending on the OLED brightness and the ESP32 activity.</p>
+<h3 id="46-hold-up-calculation">4.6 Hold-up calculation</h3>
+<p>The energy stored in a capacitor is:</p>
+<pre><code class="language-text">E = 0.5 · C · (V1² − V2²)
+</code></pre>
+<p>where <code>V1</code> is the initial voltage and <code>V2</code> is the minimum usable voltage.</p>
+<p><strong>Baseline: ESP32 DevKit LDO, 5 F, 5.0 V → 4.6 V</strong></p>
+<pre><code class="language-text">E = 0.5 × 5 × (5.0² − 4.6²)
+  = 0.5 × 5 × (25 − 21.16)
+  = 9.6 J
+t = E / P = 9.6 / 0.5 = 19.2 s   (theoretical)
+</code></pre>
+<p>Derate by 50% for LDO dropout, ESR, and efficiency: <strong>about 9–10 s</strong>. That is enough for a save and a display message.</p>
+<p><strong>Optional: 5 V boost, 5 F, 5.0 V → 2.0 V</strong></p>
+<pre><code class="language-text">E = 0.5 × 5 × (25 − 4) = 52.5 J
+t = 52.5 / (0.5 / 0.85) ≈ 89 s   (theoretical)
+</code></pre>
+<p>A boost uses much more of the capacitor's energy. It is a good upgrade if you want a longer hold-up or a larger display.</p>
+<blockquote>
+<p><strong>Boost caveat:</strong> the boost is an <strong>optional</strong> upgrade. It needs a power-path arrangement (or a boost output set below the adapter rail) so it does not fight the adapter when both are present. The baseline diode-OR design in this report does <strong>not</strong> include the boost. Build and measure the baseline first.</p>
+</blockquote>
+<p><strong>Capacitance trade-off:</strong></p>
+<table>
+<thead>
+<tr>
+<th style="text-align: right;">Capacitance</th>
+<th style="text-align: right;">LDO hold-up (calculated)</th>
+<th style="text-align: right;">Boost hold-up (calculated)</th>
+<th style="text-align: right;">Charge time with 10 Ω</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: right;">1 F</td>
+<td style="text-align: right;">3.8 s</td>
+<td style="text-align: right;">18 s</td>
+<td style="text-align: right;">~30 s to 95%</td>
+</tr>
+<tr>
+<td style="text-align: right;">2.2 F</td>
+<td style="text-align: right;">8.4 s</td>
+<td style="text-align: right;">39 s</td>
+<td style="text-align: right;">~66 s to 95%</td>
+</tr>
+<tr>
+<td style="text-align: right;">5 F</td>
+<td style="text-align: right;">19.2 s</td>
+<td style="text-align: right;">89 s</td>
+<td style="text-align: right;">~150 s to 95%</td>
+</tr>
+</tbody>
+</table>
+<p>The 1 F option is cheaper and faster to charge, but the measured hold-up may be only 1–2 s. The 5 F option gives margin. For a first build, use <strong>5 F</strong> and measure.</p>
+<h3 id="47-design-review-anomalies-found-and-fixed">4.7 Design review: anomalies found and fixed</h3>
+<p>This section records the problems found while checking the first draft of the design. They are also listed in Appendix K.</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: right;">#</th>
+<th>Anomaly in the first draft</th>
+<th>Why it matters</th>
+<th>Fix in the final design</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: right;">1</td>
+<td>5 V Arduino Nano + diode OR</td>
+<td>The ATmega328P at 16 MHz needs ≥4.5 V; the diode and LDO leave only a narrow supercapacitor window, so hold-up is short</td>
+<td>Use the <strong>ESP32 DevKit (3.3 V)</strong>; optionally add a <strong>5 V boost</strong> for a longer hold-up</td>
+</tr>
+<tr>
+<td style="text-align: right;">2</td>
+<td>Adapter-sense divider after D1</td>
+<td>The supercapacitor holds the divider high, so the firmware never sees the power failure</td>
+<td>Put the divider <strong>before D1</strong> on the adapter side</td>
+</tr>
+<tr>
+<td style="text-align: right;">3</td>
+<td>USB connected while the 5 V pin is powered</td>
+<td>The USB 5 V and the external 5 V can backfeed each other</td>
+<td><strong>Unplug USB</strong> during the demo; program first; optional Schottky from USB</td>
+</tr>
+<tr>
+<td style="text-align: right;">4</td>
+<td>Supercapacitor charging inrush</td>
+<td>A large capacitor looks like a short circuit at 5 V; the adapter or resistor can overheat</td>
+<td><strong>10 Ω, 5 W</strong> series resistor; pre-charge for 2–3 minutes</td>
+</tr>
+<tr>
+<td style="text-align: right;">5</td>
+<td>Simple diode OR does not isolate the supercapacitor</td>
+<td>The supercapacitor can supply the load while the adapter is present; the 10 Ω resistor and diodes dissipate a little power</td>
+<td>Acceptable for a prototype; a <strong>power-path switch/ideal diode</strong> is future work</td>
+</tr>
+<tr>
+<td style="text-align: right;">6</td>
+<td>ESP32 DevKit LDO dropout</td>
+<td>The LDO needs ~4.3–4.4 V input; the usable supercapacitor range is small</td>
+<td>Measure the hold-up; use a <strong>5 V boost</strong> or a low-dropout 3.3 V regulator for more margin</td>
+</tr>
+<tr>
+<td style="text-align: right;">7</td>
+<td>DS18B20 conversion blocks for 750 ms</td>
+<td>A power failure during the conversion could be detected late</td>
+<td>Use <strong>non-blocking</strong> <code>setWaitForConversion(false)</code> and read the previous result</td>
+</tr>
+<tr>
+<td style="text-align: right;">8</td>
+<td>NVS write can be interrupted</td>
+<td>A partially written record can be invalid</td>
+<td>Write immediately, include <strong>magic + sequence + CRC</strong>, validate on boot; double-buffering is future work</td>
+</tr>
+<tr>
+<td style="text-align: right;">9</td>
+<td>RTC coin cell may be dead</td>
+<td>Timestamps reset after a power loss</td>
+<td>Check/replace the CR2032; the sequence number still works</td>
+</tr>
+<tr>
+<td style="text-align: right;">10</td>
+<td>Supercapacitor self-discharge and ESR</td>
+<td>The real hold-up is shorter than the ideal calculation</td>
+<td>Measure the hold-up; derate the calculation by 50%</td>
+</tr>
+<tr>
+<td style="text-align: right;">11</td>
+<td>OLED current during hold-up</td>
+<td>The display drains the capacitor</td>
+<td>Turn the OLED off after the "SAVED" message</td>
+</tr>
+<tr>
+<td style="text-align: right;">12</td>
+<td>ESP32 ADC is not perfectly linear</td>
+<td>The voltage threshold may be off</td>
+<td>Calibrate the threshold with a multimeter; use a comparator for a critical design</td>
+</tr>
+</tbody>
+</table>
+<p><strong>The most important correction:</strong> the first draft used a 5 V Arduino Nano and a simple diode OR. That design has a very narrow usable supercapacitor window. The final design uses the <strong>ESP32 DevKit at 3.3 V</strong> and recommends a <strong>5 V boost</strong> if a longer hold-up is needed. This is a real design fix, not a cosmetic change.</p>
+<hr>
+<h2 id="5-methodology">5. Methodology</h2>
+<h3 id="51-power-fail-detection">5.1 Power-fail detection</h3>
+<p>A 10k/10k divider on the adapter side of D1 produces:</p>
+<pre><code class="language-text">V_ADC = V_adapter × 10k / (10k + 10k) = V_adapter / 2
+</code></pre>
+<p>At 5 V, the ADC sees 2.5 V. The firmware converts back:</p>
+<pre><code class="language-text">V_adapter = ADC_raw × (3.3 / 4095) × 2
+</code></pre>
+<p>The adapter is considered lost when <code>V_adapter &lt; 3.5 V</code> for 20 ms. The 20 ms debounce rejects a short glitch. The supercapacitor holds the rail during this time.</p>
+<h3 id="52-hold-up-path">5.2 Hold-up path</h3>
+<p>The supercapacitor is charged through 10 Ω. When the adapter is removed, D2 connects the supercapacitor to V_LOAD. The ESP32's onboard LDO maintains 3.3 V until its input falls below the dropout limit. The firmware saves the record as soon as the power failure is detected, then displays the message and waits for the adapter to return.</p>
+<p><img alt="Figure 5.2: Hold-up timeline" src="figures/hold_up_timeline.png"></p>
+<p><em>Timeline key: ① unplug, ② detect, ③ save, ④ display, ⑤ brownout if left unplugged, ⑥ adapter returns and the system recovers. The voltage curve is illustrative; measure your own.</em></p>
+<h3 id="53-save-sequence">5.3 Save sequence</h3>
+<p>The record contains:</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th style="text-align: right;">Size</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>magic</code></td>
+<td style="text-align: right;">4 bytes</td>
+<td>Identifies a valid record (<code>0x50464C47</code>)</td>
+</tr>
+<tr>
+<td><code>seq</code></td>
+<td style="text-align: right;">4 bytes</td>
+<td>Increments on every save</td>
+</tr>
+<tr>
+<td><code>tempC</code></td>
+<td style="text-align: right;">4 bytes</td>
+<td>Last temperature reading</td>
+</tr>
+<tr>
+<td><code>timestamp</code></td>
+<td style="text-align: right;">4 bytes</td>
+<td>Unix time from the DS3231</td>
+</tr>
+<tr>
+<td><code>powerFail</code></td>
+<td style="text-align: right;">1 byte</td>
+<td>1 = written during a power failure</td>
+</tr>
+<tr>
+<td><code>crc</code></td>
+<td style="text-align: right;">2 bytes</td>
+<td>CRC16-CCITT over the preceding bytes</td>
+</tr>
+</tbody>
+</table>
+<p>The firmware writes the record to NVS immediately, commits, and only then displays the "SAVED" message.</p>
+<h3 id="54-recovery-sequence">5.4 Recovery sequence</h3>
+<p>On boot:</p>
+<ol>
+<li>Read the record from NVS.</li>
+<li>Check the magic number and CRC.</li>
+<li>If valid and <code>powerFail == 1</code>, display the recovered temperature, timestamp, and power-failure count.</li>
+<li>Clear the power-fail flag and save the cleared record.</li>
+<li>Continue normal logging.</li>
+</ol>
+<p>If the record is invalid, the firmware starts with a safe default and reports an invalid record on the serial monitor.</p>
+<h3 id="55-state-machine">5.5 State machine</h3>
+<p><img alt="Figure 5.1: Power-fail state machine" src="figures/state_machine.png"></p>
+<table>
+<thead>
+<tr>
+<th>State</th>
+<th>Entry</th>
+<th>Action</th>
+<th>Exit</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>RUN</strong></td>
+<td>Boot</td>
+<td>Read sensor, update OLED</td>
+<td>Adapter &lt; 3.5 V for 20 ms → POWER_FAIL</td>
+</tr>
+<tr>
+<td><strong>POWER_FAIL</strong></td>
+<td>Adapter lost</td>
+<td>Stop sensor, increment PF count</td>
+<td>→ SAVE</td>
+</tr>
+<tr>
+<td><strong>SAVE</strong></td>
+<td>Power fail confirmed</td>
+<td>Build record, CRC, write NVS</td>
+<td>→ DISPLAY</td>
+</tr>
+<tr>
+<td><strong>DISPLAY</strong></td>
+<td>Save complete</td>
+<td>Show "SAVED", then OLED off</td>
+<td>→ WAIT</td>
+</tr>
+<tr>
+<td><strong>WAIT</strong></td>
+<td>Display done</td>
+<td>Wait for adapter return or brownout</td>
+<td>Adapter returns → restart/boot → RECOVER; brownout → boot</td>
+</tr>
+<tr>
+<td><strong>RECOVER</strong></td>
+<td>Boot with valid PF record</td>
+<td>Show record, clear flag</td>
+<td>→ RUN</td>
+</tr>
+</tbody>
+</table>
+<h3 id="56-data-integrity">5.6 Data integrity</h3>
+<ul>
+<li><strong>Magic number:</strong> rejects an erased or unrelated NVS region.</li>
+<li><strong>Sequence number:</strong> detects a stale record and shows how many saves occurred.</li>
+<li><strong>CRC16-CCITT:</strong> detects a partially written or corrupted record.</li>
+<li><strong>Immediate write:</strong> the record is written before the display, while the supercapacitor still has energy.</li>
+<li><strong>Double-buffering (future work):</strong> alternate between two record slots so a write interrupted mid-record cannot destroy the previous good record.</li>
+</ul>
+<h3 id="57-metrics">5.7 Metrics</h3>
+<table>
+<thead>
+<tr>
+<th>Metric</th>
+<th>Definition</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Hold-up time</strong></td>
+<td>Time from adapter unplug to the ESP32 brownout/serial stop. The OLED turns off intentionally after <code>SAVED</code>, so OLED-off is <strong>not</strong> the brownout time.</td>
+</tr>
+<tr>
+<td><strong>Save success</strong></td>
+<td>Record valid after a power-fail event</td>
+</tr>
+<tr>
+<td><strong>Recovery success</strong></td>
+<td>Record displayed correctly on the next boot</td>
+</tr>
+<tr>
+<td><strong>Charge time</strong></td>
+<td>Time for the supercapacitor to reach ~95% of 5 V</td>
+</tr>
+<tr>
+<td><strong>CRC detection</strong></td>
+<td>A deliberately corrupted record is rejected</td>
+</tr>
+<tr>
+<td><strong>Voltage margin</strong></td>
+<td>Minimum supercapacitor voltage before the LDO drops out</td>
+</tr>
+</tbody>
+</table>
+<p><img alt="Figure 5.3: Calculated hold-up vs capacitance" src="figures/hold_up_vs_capacitance.png"></p>
+<p><em>Calculated values for a 0.5 W load. The LDO curve is the conservative baseline; the boost curve is the optional upgrade. Derate the measured hold-up by at least 50% for ESR, dropout, and efficiency.</em></p>
+<h3 id="58-experimental-design">5.8 Experimental design</h3>
+<ul>
+<li><strong>Hold-up test:</strong> unplug the adapter, measure the time until the serial output stops or the ESP32 resets. The OLED turns off intentionally after <code>SAVED</code>, so do not use the OLED-off time as the brownout time. Repeat 5 times per capacitance.</li>
+<li><strong>Recovery test:</strong> unplug for 2 s, plug back in, confirm <code>RECOVERED</code> and the same temperature/timestamp. Repeat 20 times.</li>
+<li><strong>Charge test:</strong> discharge the supercapacitor, plug in, measure the time to ~4.9 V.</li>
+<li><strong>CRC test:</strong> use a test mode or a programmer to write a bad CRC; confirm the firmware rejects the record.</li>
+<li><strong>Load test:</strong> repeat with the OLED on and off to see the effect on hold-up.</li>
+</ul>
+<hr>
+<h2 id="6-implementation">6. Implementation</h2>
+<h3 id="61-firmware-architecture">6.1 Firmware architecture</h3>
+<pre><code class="language-text">setup()
+  ├── Serial, pins, ADC, I2C
+  ├── OLED init
+  ├── RTC init
+  ├── DS18B20 init (non-blocking)
+  ├── NVS load
+  └── recovery screen or normal screen
+
+loop()
+  ├── checkPower()          // every 10 ms
+  ├── handlePowerFail()     // save, display, wait
+  ├── checkButton()         // optional manual log
+  ├── updateTemperature()   // non-blocking
+  ├── displayNormal()       // every 250 ms
+  └── CSV row               // every 100 ms, optional plot
+</code></pre>
+<h3 id="62-pseudocode">6.2 Pseudocode</h3>
+<pre><code class="language-text">every 10 ms:
+    adapterV = readVoltage(GPIO34)
+    if adapterV &lt; 3.5 V for 20 ms:
+        powerFail = true
+
+if powerFail:
+    pfCount++
+    show &quot;POWER LOST / SAVING...&quot;
+    record = {magic, ++seq, lastTemp, now(), powerFail=1, crc}
+    nvs.write(record)
+    show &quot;SAVED&quot;
+    delay 800 ms
+    oled.off()
+    while adapterV &lt; 3.5 V:
+        wait
+    restart()
+
+on boot:
+    record = nvs.read()
+    if valid(record) and record.powerFail:
+        show &quot;RECOVERED&quot; + record
+        record.powerFail = 0
+        nvs.write(record)
+</code></pre>
+<h3 id="63-key-code-excerpts">6.3 Key code excerpts</h3>
+<p>The complete sketch is in <code>power_fail_logger_firmware/power_fail_logger_firmware.ino</code>.</p>
+<p><strong>Power-fail detection:</strong></p>
+<pre><code class="language-cpp">void checkPower() {
+  float adapterV = readVoltage(PIN_ADAPTER);
+
+  if (adapterV &lt; ADAPTER_LOSS_V) {
+    if (millis() - lastGoodMs &gt; POWER_FAIL_DEBOUNCE_MS) {
+      powerFail = true;
+    }
+  } else {
+    lastGoodMs = millis();
+  }
+}
+</code></pre>
+<p><strong>Record save with CRC:</strong></p>
+<pre><code class="language-cpp">void saveRecord(uint8_t pf) {
+  rec.magic = MAGIC;
+  rec.seq = ++seq;
+  rec.tempC = lastTemp;
+  rec.timestamp = nowUnix();
+  rec.powerFail = pf;
+  rec.crc = crc16((const uint8_t *)&amp;rec,
+                  sizeof(rec) - sizeof(rec.crc));
+
+  prefs.begin(&quot;pflog&quot;, false);
+  prefs.putBytes(&quot;rec&quot;, &amp;rec, sizeof(rec));
+  prefs.putUInt(&quot;pfcount&quot;, pfCount);
+  prefs.end();
+}
+</code></pre>
+<p><strong>Non-blocking temperature conversion:</strong></p>
+<pre><code class="language-cpp">void updateTemperature() {
+  if (!tempRequested) {
+    sensors.requestTemperatures();
+    tempRequested = true;
+    lastTempRequestMs = millis();
+  } else if (millis() - lastTempRequestMs &gt;= TEMP_CONVERSION_MS) {
+    float t = sensors.getTempCByIndex(0);
+    if (t != DEVICE_DISCONNECTED_C) lastTemp = t;
+    tempRequested = false;
+  }
+}
+</code></pre>
+<h3 id="64-oled-screens">6.4 OLED screens</h3>
+<p><strong>Normal:</strong></p>
+<pre><code class="language-text">POWER OK
+T: 27.5 C
+Time: 12:34:56
+SC: 4.82 V
+PF: 1
+</code></pre>
+<p><strong>Power lost:</strong></p>
+<pre><code class="language-text">POWER LOST
+SAVING...
+SC: 4.61 V
+</code></pre>
+<p><strong>Saved:</strong></p>
+<pre><code class="language-text">SAVED
+PF #1
+SC: 4.55 V
+</code></pre>
+<p><strong>Recovered:</strong></p>
+<pre><code class="language-text">POWER-FAIL LOGGER
+RECOVERED
+T: 27.5 C
+Time: 12:34:56
+PF count: 1
+</code></pre>
+<h3 id="65-serial-log">6.5 Serial log</h3>
+<pre><code class="language-text">BOOT valid=1 seq=4 pfCount=1
+SAVE seq=5 temp=27.50 ts=1762345678 pf=1 crc=7A3C
+RECOVERED seq=5 temp=27.50 ts=1762345678 crc=7A3C
+12345,4.820,5.000,0
+12445,4.815,5.000,0
+...
+</code></pre>
+<p>The firmware prints a CSV row every 100 ms for the optional plot:</p>
+<pre><code class="language-text">t_ms,sc_v,adapter_v,powerFail
+</code></pre>
+<p>Event lines (<code>BOOT</code>, <code>SAVE</code>, <code>RECOVERED</code>, <code>MANUAL_LOG</code>, <code>READY</code>) start with words, not digits, so the analysis script can filter them out.</p>
+<h3 id="66-build-steps">6.6 Build steps</h3>
+<ol>
+<li>Wire the power path <strong>without the ESP32</strong> first: adapter, D1, D2, 10 Ω, supercapacitor, dividers.</li>
+<li>Measure the 5 V rail and the divider voltages with a multimeter.</li>
+<li>Charge the supercapacitor for 2–3 minutes; confirm the rail stays up after unplugging.</li>
+<li>Wire the ESP32, OLED, RTC, and DS18B20.</li>
+<li>Run an I²C scanner; confirm the OLED (0x3C/0x3D) and RTC (0x68).</li>
+<li>Run the DS18B20 example; confirm a temperature reading.</li>
+<li>Upload the full firmware.</li>
+<li>Test the normal screen, then the unplug/replug sequence.</li>
+<li>Measure the hold-up time and record it.</li>
+<li>Repeat 20 cycles and fill the results table.</li>
+</ol>
+<h3 id="67-debugging-sequence">6.7 Debugging sequence</h3>
+<table>
+<thead>
+<tr>
+<th>Symptom</th>
+<th>First check</th>
+<th>Next check</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>OLED blank</td>
+<td>Address 0x3C vs 0x3D</td>
+<td>I²C scanner; 3.3 V; GND</td>
+</tr>
+<tr>
+<td>RTC not found</td>
+<td>I²C address 0x68</td>
+<td>Coin cell; SDA/SCL</td>
+</tr>
+<tr>
+<td>Temperature <code>--</code></td>
+<td>DS18B20 4.7 kΩ pull-up</td>
+<td>1-Wire pin; sensor example</td>
+</tr>
+<tr>
+<td>No power-fail detection</td>
+<td>Divider before D1?</td>
+<td>ADC voltage on GPIO34; threshold</td>
+</tr>
+<tr>
+<td>Save but no recovery</td>
+<td>NVS record valid?</td>
+<td>CRC; <code>powerFail</code> flag; boot log</td>
+</tr>
+<tr>
+<td>Hold-up too short</td>
+<td>Capacitance/load</td>
+<td>Add 5 F; turn OLED off earlier; add boost</td>
+</tr>
+<tr>
+<td>ESP32 resets when unplugged</td>
+<td>5 V rail dropout</td>
+<td>5 F cap; boost; shorter wires</td>
+</tr>
+<tr>
+<td>USB backfeed</td>
+<td>USB connected during demo</td>
+<td>Unplug USB; power via 5 V pin</td>
+</tr>
+<tr>
+<td>Charge resistor hot</td>
+<td>10 Ω 5 W?</td>
+<td>Use 5 W; pre-charge; check current</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="7-testing">7. Testing</h2>
+<h3 id="71-unit-tests">7.1 Unit tests</h3>
+<ol>
+<li><strong>Power path:</strong> adapter 5 V, rail ~4.7 V, supercapacitor charges.</li>
+<li><strong>Unplug:</strong> rail stays up; measure hold-up.</li>
+<li><strong>Adapter sense:</strong> GPIO34 reads ~2.5 V with adapter, 0 V without.</li>
+<li><strong>Supercapacitor sense:</strong> GPIO35 tracks the capacitor voltage.</li>
+<li><strong>OLED:</strong> normal screen.</li>
+<li><strong>RTC:</strong> time advances; survives a power cycle.</li>
+<li><strong>DS18B20:</strong> temperature matches a reference thermometer.</li>
+<li><strong>NVS:</strong> write/read a record; CRC valid.</li>
+<li><strong>Recovery:</strong> unplug/replug; <code>RECOVERED</code> screen.</li>
+</ol>
+<h3 id="72-hold-up-measurement">7.2 Hold-up measurement</h3>
+<ul>
+<li>Connect a multimeter to SC+ and GND.</li>
+<li>Unplug the adapter and start a stopwatch.</li>
+<li>Stop when the serial output stops or the ESP32 resets. Do <strong>not</strong> stop when the OLED turns off; the firmware turns the OLED off after <code>SAVED</code> to save energy.</li>
+<li>Record the time and the voltage at the last good reading.</li>
+<li>Repeat 5 times; report mean and standard deviation.</li>
+</ul>
+<h3 id="73-recovery-test">7.3 Recovery test</h3>
+<ul>
+<li>Unplug for 2 s.</li>
+<li>Plug back in.</li>
+<li>Confirm <code>RECOVERED</code> and the same temperature/timestamp.</li>
+<li>Repeat 20 times.</li>
+<li>Record successes and failures.</li>
+</ul>
+<h3 id="74-crc-test">7.4 CRC test</h3>
+<ul>
+<li>Add a test mode that writes a record with a deliberately wrong CRC.</li>
+<li>On boot, confirm the firmware rejects it and reports <code>INVALID RECORD</code>.</li>
+<li>Remove the test mode before the demo.</li>
+</ul>
+<h3 id="75-charge-time-test">7.5 Charge-time test</h3>
+<ul>
+<li>Discharge the supercapacitor through a resistor (or leave the system off for a while).</li>
+<li>Plug in and measure the time to ~4.9 V.</li>
+<li>Record the time for 1 F, 2.2 F, and 5 F if available.</li>
+</ul>
+<h3 id="76-safety">7.6 Safety</h3>
+<ul>
+<li>5 V USB only; no mains.</li>
+<li>The supercapacitor can deliver a large current if shorted; keep the leads insulated.</li>
+<li>The 10 Ω resistor may get warm during charging; keep it away from flammable material.</li>
+<li>Do not reverse the supercapacitor polarity.</li>
+<li>Unplug the adapter before changing wiring.</li>
+</ul>
+<hr>
+<h2 id="8-results">8. Results</h2>
+<blockquote>
+<p><strong>Important:</strong> Replace every <code>[FILL]</code> with your measured data. The rows below are formatting examples, not real results. If a test was not performed, write "not measured"; do not invent numbers.</p>
+</blockquote>
+<h3 id="81-hold-up-vs-capacitance">8.1 Hold-up vs capacitance</h3>
+<table>
+<thead>
+<tr>
+<th style="text-align: right;">Capacitance</th>
+<th style="text-align: right;">Calculated hold-up (LDO)</th>
+<th style="text-align: right;">Measured hold-up</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: right;">1 F</td>
+<td style="text-align: right;">3.8 s</td>
+<td style="text-align: right;"><code>[FILL] s</code></td>
+<td></td>
+</tr>
+<tr>
+<td style="text-align: right;">2.2 F</td>
+<td style="text-align: right;">8.4 s</td>
+<td style="text-align: right;"><code>[FILL] s</code></td>
+<td></td>
+</tr>
+<tr>
+<td style="text-align: right;">5 F</td>
+<td style="text-align: right;">19.2 s</td>
+<td style="text-align: right;"><code>[FILL] s</code></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h3 id="82-recovery-success">8.2 Recovery success</h3>
+<table>
+<thead>
+<tr>
+<th>Test</th>
+<th style="text-align: right;">Cycles</th>
+<th style="text-align: right;">Successful recoveries</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Unplug 2 s, replug</td>
+<td style="text-align: right;">20</td>
+<td style="text-align: right;"><code>[FILL] / 20</code></td>
+<td></td>
+</tr>
+<tr>
+<td>Unplug until brownout, replug</td>
+<td style="text-align: right;">10</td>
+<td style="text-align: right;"><code>[FILL] / 10</code></td>
+<td></td>
+</tr>
+<tr>
+<td>Corrupted record</td>
+<td style="text-align: right;">5</td>
+<td style="text-align: right;"><code>[FILL] / 5</code> rejected</td>
+<td>CRC test</td>
+</tr>
+</tbody>
+</table>
+<h3 id="83-charge-time">8.3 Charge time</h3>
+<table>
+<thead>
+<tr>
+<th style="text-align: right;">Capacitance</th>
+<th style="text-align: right;">Time to ~4.9 V</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: right;">1 F</td>
+<td style="text-align: right;"><code>[FILL] s</code></td>
+<td></td>
+</tr>
+<tr>
+<td style="text-align: right;">2.2 F</td>
+<td style="text-align: right;"><code>[FILL] s</code></td>
+<td></td>
+</tr>
+<tr>
+<td style="text-align: right;">5 F</td>
+<td style="text-align: right;"><code>[FILL] s</code></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h3 id="84-example-hold-up-waveform">8.4 Example hold-up waveform</h3>
+<p><code>[FILL: insert Figure 8.1. Plot the supercapacitor voltage vs time from the unplug event to brownout. Mark the detect, save, display, and brownout points.]</code></p>
+<p><strong>Caption:</strong> The adapter was unplugged at <code>[FILL]</code> s. The firmware detected the loss at <code>[FILL]</code> s, saved the record at <code>[FILL]</code> s, and displayed <code>SAVED</code> at <code>[FILL]</code> s. The ESP32 browned out at <code>[FILL]</code> s, giving a hold-up of <code>[FILL]</code> s.</p>
+<h3 id="85-oled-recovery-screen">8.5 OLED recovery screen</h3>
+<p><code>[FILL: insert Figure 8.2, a photo of the OLED showing RECOVERED, temperature, timestamp, and PF count.]</code></p>
+<h3 id="86-discussion-of-results">8.6 Discussion of results</h3>
+<p>Answer:</p>
+<ul>
+<li>Did the measured hold-up match the calculation? If not, why?</li>
+<li>How much does the OLED current affect the hold-up?</li>
+<li>Did every recovery succeed? If not, what failed?</li>
+<li>Did the CRC test reject the corrupted record?</li>
+<li>How long did charging take?</li>
+<li>What is the limiting factor: capacitance, LDO dropout, or load?</li>
+</ul>
+<p>Do not overclaim. A small number of cycles is a demonstration, not a reliability qualification.</p>
+<hr>
+<h2 id="9-discussion">9. Discussion</h2>
+<h3 id="91-interpretation">9.1 Interpretation</h3>
+<p>The prototype demonstrates that a low-cost supercapacitor and a simple diode-OR path can keep an ESP32 alive long enough to save a CRC-protected record and recover it on the next boot. The most important design constraint is not the capacitance alone; it is the <strong>usable voltage window</strong> set by the LDO dropout and the diode drops.</p>
+<h3 id="92-trade-offs">9.2 Trade-offs</h3>
+<table>
+<thead>
+<tr>
+<th>Trade-off</th>
+<th>Effect</th>
+<th>Mitigation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Larger capacitance</td>
+<td>Longer hold-up</td>
+<td>Bigger, more expensive, slower to charge</td>
+</tr>
+<tr>
+<td>Smaller capacitance</td>
+<td>Faster charge, cheaper</td>
+<td>Shorter hold-up; risk of incomplete save</td>
+</tr>
+<tr>
+<td>Simple diode OR</td>
+<td>Cheap, simple</td>
+<td>Diode drop; no isolation; use a power-path switch for a better design</td>
+</tr>
+<tr>
+<td>5 V boost</td>
+<td>Uses more capacitor energy</td>
+<td>Extra module, EMI, efficiency loss</td>
+</tr>
+<tr>
+<td>OLED on during hold-up</td>
+<td>User sees the message</td>
+<td>Drains current; turn it off after <code>SAVED</code></td>
+</tr>
+<tr>
+<td>NVS vs EEPROM</td>
+<td>Wear-leveled, built in</td>
+<td>NVS commit time; use CRC and immediate write</td>
+</tr>
+<tr>
+<td>Single record</td>
+<td>Simple</td>
+<td>A mid-write failure can lose the previous record; double-buffer future</td>
+</tr>
+</tbody>
+</table>
+<h3 id="93-sources-of-error">9.3 Sources of error</h3>
+<ul>
+<li>Multimeter/stopwatch reaction time.</li>
+<li>Supercapacitor self-discharge and ESR.</li>
+<li>OLED brightness/current variation.</li>
+<li>ESP32 current spikes during WiFi/radio activity (WiFi is off).</li>
+<li>Diode forward-voltage variation.</li>
+<li>LDO dropout variation.</li>
+<li>NVS commit time variation.</li>
+<li>RTC coin-cell condition.</li>
+<li>Temperature effects on capacitance and ESR.</li>
+</ul>
+<h3 id="94-comparison">9.4 Comparison</h3>
+<table>
+<thead>
+<tr>
+<th>Approach</th>
+<th>Backup time</th>
+<th>Cost</th>
+<th>Complexity</th>
+<th>Best use</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>No backup</td>
+<td>0</td>
+<td>0</td>
+<td>Low</td>
+<td>Benign environments</td>
+</tr>
+<tr>
+<td>Supercapacitor (this project)</td>
+<td>Seconds</td>
+<td>Low</td>
+<td>Medium</td>
+<td>Save a record, shutdown cleanly</td>
+</tr>
+<tr>
+<td>Battery UPS</td>
+<td>Hours</td>
+<td>Medium–high</td>
+<td>High</td>
+<td>Long outages</td>
+</tr>
+<tr>
+<td>Power-fail-safe file system</td>
+<td>N/A</td>
+<td>Low (software)</td>
+<td>High</td>
+<td>Large storage</td>
+</tr>
+<tr>
+<td>Industrial UPS</td>
+<td>Minutes–hours</td>
+<td>High</td>
+<td>High</td>
+<td>Critical systems</td>
+</tr>
+</tbody>
+</table>
+<p>The supercapacitor approach fills the gap between "no backup" and "full UPS."</p>
+<hr>
+<h2 id="10-novelty-and-contributions">10. Novelty and Contributions</h2>
+<p><strong>Existing work, stated honestly.</strong> Supercapacitor backup, brownout detection, NVS/EEPROM, and CRC-protected records all exist. Commercial UPS modules and power-fail-safe file systems exist. This project does <strong>not</strong> claim a new concept.</p>
+<p><strong>What this project contributes:</strong></p>
+<ol>
+<li><strong>A low-cost, explainable power-fail architecture:</strong> discrete diode OR, supercapacitor, ADC sensing, and a five-state firmware sequence.</li>
+<li><strong>A measured hold-up and recovery evaluation:</strong> the report measures the actual hold-up time and the recovery success rate, not just "it works."</li>
+<li><strong>A CRC-protected non-volatile record:</strong> magic, sequence, timestamp, temperature, power-fail flag, and CRC, validated on boot.</li>
+<li><strong>A reproducible testbed:</strong> BOM, wiring, firmware, test protocol, and a 20-cycle recovery test that another student can repeat.</li>
+<li><strong>A design review with real corrections:</strong> the 5 V Nano voltage-window problem, the adapter-sense divider placement, USB backfeed, inrush, and non-blocking sensor conversion are documented and fixed.</li>
+</ol>
+<p><strong>Viva answer if asked "this already exists":</strong></p>
+<blockquote>
+<p>"Yes — supercapacitor backup and power-fail-safe storage are established. We are not claiming a new concept. Our contribution is a low-cost, explainable implementation with a measured hold-up time, a CRC-protected record, and a deterministic recovery sequence, plus a reproducible testbed. We used the existing work as a baseline."</p>
+</blockquote>
+<p>This is a course-level contribution, not a research contribution. The project does <strong>not</strong> claim a new algorithm or a certified product.</p>
+<hr>
+<h2 id="11-limitations">11. Limitations</h2>
+<ul>
+<li><strong>Seconds, not hours:</strong> the supercapacitor holds the system for a few seconds; it is not a battery replacement.</li>
+<li><strong>Simple diode OR:</strong> the supercapacitor can supply the load while the adapter is present; a power-path switch/ideal diode would isolate it better.</li>
+<li><strong>LDO dropout:</strong> the ESP32 DevKit's LDO limits the usable voltage window; a 5 V boost or a low-dropout regulator would improve the hold-up.</li>
+<li><strong>Single record:</strong> a write interrupted mid-record can lose the previous record; double-buffering is future work.</li>
+<li><strong>NVS wear:</strong> NVS is wear-leveled, but repeated power-fail writes still consume endurance; a real product would use FRAM or a more sophisticated scheme.</li>
+<li><strong>RTC coin cell:</strong> if the CR2032 is dead, the timestamp resets; the sequence number still works.</li>
+<li><strong>No file system:</strong> the prototype stores one record, not a log.</li>
+<li><strong>No NVS write verification:</strong> the baseline does not check the return value of the NVS write or retry; a production design should verify and double-buffer.</li>
+<li><strong>No hardware watchdog:</strong> the baseline does not enable the ESP32 task watchdog; it is a future-work improvement.</li>
+<li><strong>Platform-specific record layout:</strong> the packed struct is little-endian and assumes the same board reads it; a portable format would serialize each field explicitly.</li>
+<li><strong>Adapter unplug is not a full mains test:</strong> the prototype does not test brownouts, transients, or a real mains failure.</li>
+<li><strong>No enclosure/PCB:</strong> the breadboard is a prototype.</li>
+<li><strong>No field trials:</strong> the tests are on a bench, not in a deployment.</li>
+</ul>
+<hr>
+<h2 id="12-conclusion-and-future-work">12. Conclusion and Future Work</h2>
+<h3 id="121-conclusion">12.1 Conclusion</h3>
+<p>This project designed and implemented a low-cost power-fail-safe sensor logger. The system detects adapter loss, holds up the ESP32 with a supercapacitor, saves a CRC-protected record to NVS, displays a clear status message, and recovers the record on the next boot. The measured hold-up was <code>[FILL]</code> s and <code>[FILL]</code> of <code>[FILL]</code> recovery cycles succeeded.</p>
+<p>The key lesson is that the usable hold-up depends on the <strong>voltage window</strong> set by the LDO and diodes, not only on the capacitance. The design review found and fixed several issues in the first draft, including the 5 V Nano voltage-window problem and the adapter-sense divider placement.</p>
+<h3 id="122-future-work">12.2 Future work</h3>
+<ol>
+<li><strong>5 V boost or power-path switch:</strong> use more of the supercapacitor energy and isolate the backup when the adapter is present.</li>
+<li><strong>Double-buffered records:</strong> alternate between two NVS slots to survive a mid-write failure.</li>
+<li><strong>FRAM:</strong> replace NVS/EEPROM for faster, higher-endurance writes.</li>
+<li><strong>Multiple sensors and a real log:</strong> temperature, humidity, light, and a timestamped ring buffer.</li>
+<li><strong>Battery + supercapacitor hybrid:</strong> long backup with a supercapacitor for the final write.</li>
+<li><strong>Watchdog and secure boot:</strong> recover from a firmware hang and verify the image.</li>
+<li><strong>PCB and enclosure:</strong> a compact, wearable/industrial prototype.</li>
+<li><strong>Oscilloscope measurement:</strong> capture the rail and supercapacitor voltage at high resolution.</li>
+<li><strong>Field test:</strong> brownouts, transients, and long-term cycling.</li>
+</ol>
+<hr>
+<h2 id="references">References</h2>
+<ol>
+<li>Espressif Systems, "ESP32 Series Datasheet." https://www.espressif.com/en/products/socs/esp32</li>
+<li>Espressif Systems, "ESP32 DevKitC V4 schematic." https://www.espressif.com/</li>
+<li>Texas Instruments, "AMS1117 1-A Low Dropout Voltage Regulator." https://www.ti.com/</li>
+<li>Vishay, "1N5819 Schottky Barrier Rectifier." https://www.vishay.com/</li>
+<li>Espressif, "ESP32 Hardware Design Guidelines." https://docs.espressif.com/</li>
+<li>Microchip, "ATmega328P Datasheet" (for the 16 MHz/4.5 V comparison). https://www.microchip.com/</li>
+<li>Maxim Integrated, "DS3231 Extremely Accurate I²C-Integrated RTC/TCXO/Crystal." https://www.maximintegrated.com/</li>
+<li>Analog Devices/Maxim, "DS18B20 Programmable Resolution 1-Wire Digital Thermometer." https://www.maximintegrated.com/</li>
+<li>Adafruit, "SSD1306 OLED display" and "RTClib" documentation. https://learn.adafruit.com/</li>
+<li>Espressif, "Non-Volatile Storage (NVS) Library." https://docs.espressif.com/</li>
+<li>Robu.in, "1F – 5.5V Super Capacitor" and "1.5F – 5.5V Super Capacitor" product pages (price/stock reference; verify current availability). https://robu.in/</li>
+<li>Espressif, "ESP32 Power Management and Sleep Modes." https://docs.espressif.com/</li>
+</ol>
+<blockquote>
+<p><strong>Reference hygiene:</strong> verify every reference before submission. Replace any representative entry with the exact datasheet/application note you used.</p>
+</blockquote>
+<hr>
+<h2 id="appendix-a-bill-of-materials">Appendix A: Bill of Materials</h2>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th style="text-align: right;">Qty</th>
+<th style="text-align: right;">Approx. price</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ESP32 DevKit V1</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">₹450–600</td>
+<td>3.3 V, USB, NVS</td>
+</tr>
+<tr>
+<td>Supercapacitor, 5.5 V, 5 F</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">₹200–400</td>
+<td>5 F for margin; 1 F/1.5 F cheaper but shorter hold-up</td>
+</tr>
+<tr>
+<td>1N5819 Schottky diode</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">₹10–20 each</td>
+<td>D1, D2</td>
+</tr>
+<tr>
+<td>10 Ω, 5 W resistor</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">₹20–30</td>
+<td>Charge-current limit</td>
+</tr>
+<tr>
+<td>10 kΩ resistor</td>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">₹10</td>
+<td>Two dividers</td>
+</tr>
+<tr>
+<td>4.7 kΩ resistor</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">₹5</td>
+<td>DS18B20 pull-up</td>
+</tr>
+<tr>
+<td>220 Ω resistor</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">₹5</td>
+<td>LED</td>
+</tr>
+<tr>
+<td>0.96" I²C OLED, SSD1306</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">₹180–300</td>
+<td>128×64</td>
+</tr>
+<tr>
+<td>DS18B20 temperature sensor</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">₹100–150</td>
+<td>TO-92 or waterproof probe</td>
+</tr>
+<tr>
+<td>DS3231 RTC module</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">₹100–150</td>
+<td>Check CR2032 coin cell</td>
+</tr>
+<tr>
+<td>Half-size breadboard</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">₹60–100</td>
+<td></td>
+</tr>
+<tr>
+<td>2-pin terminal block</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">₹20–40</td>
+<td>Supercapacitor leads; they are too thick for a breadboard</td>
+</tr>
+<tr>
+<td>Jumper wires</td>
+<td style="text-align: right;">1 set</td>
+<td style="text-align: right;">₹80–150</td>
+<td>M–M and M–F</td>
+</tr>
+<tr>
+<td>5 V, 1 A adapter</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">₹150–250</td>
+<td>The thing you unplug</td>
+</tr>
+<tr>
+<td>USB cable for ESP32</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">₹50–100</td>
+<td>Programming only</td>
+</tr>
+<tr>
+<td>LED, button, buzzer</td>
+<td style="text-align: right;">—</td>
+<td style="text-align: right;">₹50</td>
+<td>Optional</td>
+</tr>
+<tr>
+<td>100 nF capacitors</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">₹10</td>
+<td>ADC noise, optional</td>
+</tr>
+<tr>
+<td>Optional: 5 V boost module (MT3608)</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">₹80–150</td>
+<td>Longer hold-up</td>
+</tr>
+<tr>
+<td>Optional: enclosure</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">₹100–200</td>
+<td>Clear plastic box</td>
+</tr>
+<tr>
+<td><strong>Total</strong></td>
+<td style="text-align: right;"></td>
+<td style="text-align: right;"><strong>₹1,500–2,400</strong></td>
+<td>Excluding optional boost/enclosure</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Availability note:</strong> supercapacitor stock varies. The 1 F and 1.5 F 5.5 V parts are cheaper (around ₹111–123 at Robu at the time of writing) but may be out of stock; the 5 F part is the better choice for margin. Check current stock and price before ordering.</p>
+<p><strong>Mechanical note:</strong> 5 F supercapacitors have thick leads and a large body. Use a terminal block or solder short wires; do not force the leads into a breadboard. Check the polarity before powering.</p>
+<p><strong>RTC note:</strong> some DS3231 modules include a trickle-charge circuit. A non-rechargeable CR2032 can be damaged by charging. Either use a rechargeable LIR2032, or remove the charging resistor/diode on the module if you use a CR2032. Check your module's schematic.</p>
+<hr>
+<h2 id="appendix-b-wiring-and-pin-map">Appendix B: Wiring and Pin Map</h2>
+<table>
+<thead>
+<tr>
+<th>ESP32 pin</th>
+<th>Connected to</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>3V3</td>
+<td>OLED VCC, DS3231 VCC, DS18B20 VDD, 4.7 kΩ pull-up</td>
+<td>3.3 V</td>
+</tr>
+<tr>
+<td>GND</td>
+<td>OLED GND, DS3231 GND, DS18B20 GND, dividers, SC−</td>
+<td>Common ground</td>
+</tr>
+<tr>
+<td>GPIO21</td>
+<td>OLED SDA, DS3231 SDA</td>
+<td>I²C data</td>
+</tr>
+<tr>
+<td>GPIO22</td>
+<td>OLED SCL, DS3231 SCL</td>
+<td>I²C clock</td>
+</tr>
+<tr>
+<td>GPIO4</td>
+<td>DS18B20 DQ</td>
+<td>1-Wire</td>
+</tr>
+<tr>
+<td>GPIO34</td>
+<td>Adapter-sense divider midpoint</td>
+<td>ADC, input only</td>
+</tr>
+<tr>
+<td>GPIO35</td>
+<td>Supercapacitor-sense divider midpoint</td>
+<td>ADC, input only</td>
+</tr>
+<tr>
+<td>GPIO26</td>
+<td>LED + 220 Ω</td>
+<td>Status</td>
+</tr>
+<tr>
+<td>GPIO25</td>
+<td>Buzzer +</td>
+<td>Optional</td>
+</tr>
+<tr>
+<td>GPIO16</td>
+<td>Button to GND</td>
+<td>Optional</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Power path:</strong></p>
+<pre><code class="language-text">5 V adapter + ──► D1 ──► 5 V rail ──► ESP32 5V
+       │                    ▲
+       └── 10 Ω 5 W ──► SC+ ──► D2
+                          │
+                         SC− ── GND
+
+Adapter + ── 10k ── GPIO34 ── 10k ── GND   (before D1!)
+SC+       ── 10k ── GPIO35 ── 10k ── GND
+</code></pre>
+<hr>
+<h2 id="appendix-c-firmware">Appendix C: Firmware</h2>
+<p>The complete sketch is in:</p>
+<pre><code class="language-text">power_fail_logger_firmware/power_fail_logger_firmware.ino
+</code></pre>
+<p><strong>Libraries:</strong></p>
+<ul>
+<li>Adafruit GFX Library</li>
+<li>Adafruit SSD1306</li>
+<li>OneWire</li>
+<li>DallasTemperature</li>
+<li>RTClib (Adafruit)</li>
+<li>Preferences (included with the ESP32 core)</li>
+</ul>
+<p><strong>Upload settings:</strong></p>
+<ul>
+<li>Board: ESP32 Dev Module</li>
+<li>Upload speed: 921600 or 115200</li>
+<li>Flash frequency: 80 MHz</li>
+<li>Partition scheme: default</li>
+<li>Port: <code>/dev/ttyUSB0</code> or <code>/dev/ttyACM0</code></li>
+</ul>
+<p><strong>Important:</strong> unplug the external 5 V adapter while uploading over USB. After uploading, disconnect USB and power the board from the adapter/supercapacitor path.</p>
+<hr>
+<h2 id="appendix-d-viva-questions">Appendix D: Viva Questions</h2>
+<p>A separate question bank is in <code>power_fail_logger_viva_qa.md</code>. The most important questions:</p>
+<ol>
+<li>What is the project?</li>
+<li>Why does a logger need power-fail protection?</li>
+<li>Why a supercapacitor instead of a battery?</li>
+<li>How do you calculate the hold-up time?</li>
+<li>What limits the usable voltage range?</li>
+<li>Why is the adapter-sense divider before D1?</li>
+<li>How does the diode OR work?</li>
+<li>What is the role of D1 and D2?</li>
+<li>Why 10 Ω and 5 W?</li>
+<li>How long does the supercapacitor take to charge?</li>
+<li>What happens when the adapter is unplugged?</li>
+<li>How do you detect the power failure?</li>
+<li>Why 20 ms debounce?</li>
+<li>What is NVS?</li>
+<li>Why CRC?</li>
+<li>What is the magic number?</li>
+<li>What happens if the record is corrupted?</li>
+<li>How do you recover the record?</li>
+<li>What is the state machine?</li>
+<li>Why non-blocking DS18B20 conversion?</li>
+<li>What is the ESP32 LDO dropout?</li>
+<li>What is the 5 V boost option?</li>
+<li>What are the limitations?</li>
+<li>What is the novelty?</li>
+<li>What would you do with more time?</li>
+</ol>
+<hr>
+<h2 id="appendix-e-demo-script">Appendix E: Demo Script</h2>
+<p><strong>Duration:</strong> 5–7 minutes.</p>
+<ol>
+<li><strong>Introduction (30 s).</strong> "This logger is designed for the moment power disappears. It detects the loss, saves the last reading with a CRC, and recovers it on the next boot."</li>
+<li><strong>Normal operation (60 s).</strong> Show the OLED: <code>POWER OK</code>, temperature, time, supercapacitor voltage, PF count. Explain the DS18B20 and DS3231.</li>
+<li><strong>Power path (60 s).</strong> Point to the adapter, D1, D2, 10 Ω resistor, and supercapacitor. Explain that the supercapacitor is the short-term backup.</li>
+<li><strong>Unplug (60 s).</strong> Unplug the adapter. OLED shows <code>POWER LOST</code> → <code>SAVING...</code> → <code>SAVED</code>. The supercapacitor voltage is visible. Explain that the save happened before the display.</li>
+<li><strong>Plug back in (30 s).</strong> The ESP32 restarts and shows <code>RECOVERED</code> with the last temperature, timestamp, and PF count.</li>
+<li><strong>Repeat (60 s).</strong> Repeat the unplug/replug twice. Show the PF count incrementing.</li>
+<li><strong>Results (60 s).</strong> Show the hold-up table and the 20/20 recovery result. Mention the calculated vs measured hold-up.</li>
+<li><strong>Limitations (30 s).</strong> Seconds, not hours; simple diode OR; proof of concept.</li>
+<li><strong>Close (15 s).</strong> "The contribution is a low-cost, explainable power-fail sequence with a measured hold-up and a CRC-protected record."</li>
+</ol>
+<p><strong>Backup plan:</strong></p>
+<ul>
+<li>If the OLED fails, use the serial monitor.</li>
+<li>If the RTC fails, use the sequence number and uptime; the save/recovery still works.</li>
+<li>If the supercapacitor is not charged, pre-charge for 2–3 minutes.</li>
+<li>Keep a printed copy of the block diagram, power path, and results.</li>
+</ul>
+<hr>
+<h2 id="appendix-f-seven-day-plan">Appendix F: Seven-Day Plan</h2>
+<table>
+<thead>
+<tr>
+<th>Day</th>
+<th>Work</th>
+<th>Checkpoint</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>0 (today)</strong></td>
+<td>Order parts.</td>
+<td>Order confirmed</td>
+</tr>
+<tr>
+<td><strong>1</strong></td>
+<td>Build the power path without the ESP32; measure the 5 V rail, divider voltages, charge time, and hold-up with a dummy load.</td>
+<td>Power path works</td>
+</tr>
+<tr>
+<td><strong>2</strong></td>
+<td>Wire the ESP32, OLED, RTC, DS18B20; run the examples; confirm I²C addresses.</td>
+<td>All peripherals work</td>
+</tr>
+<tr>
+<td><strong>3</strong></td>
+<td>Implement the power-fail detection, NVS save, CRC, recovery screen; test 5 cycles.</td>
+<td>First successful recovery</td>
+</tr>
+<tr>
+<td><strong>4</strong></td>
+<td>Run 20 unplug/replug cycles; measure hold-up for 1 F/2.2 F/5 F if available; record results.</td>
+<td>Results table filled</td>
+</tr>
+<tr>
+<td><strong>5</strong></td>
+<td>Tidy the wiring, build a simple enclosure, take photos, record a backup video.</td>
+<td>Demo hardware ready</td>
+</tr>
+<tr>
+<td><strong>6</strong></td>
+<td>Write the report, insert plots/photos, prepare viva.</td>
+<td>Report draft complete</td>
+</tr>
+<tr>
+<td><strong>7</strong></td>
+<td>Rehearse the demo, final checks, buffer.</td>
+<td>Ready to submit</td>
+</tr>
+</tbody>
+</table>
+<p><strong>If parts arrive late:</strong> start with the report outline, block diagram, and firmware skeleton. Test the power path as soon as the parts arrive. Do not wait for the enclosure.</p>
+<hr>
+<h2 id="appendix-g-troubleshooting">Appendix G: Troubleshooting</h2>
+<table>
+<thead>
+<tr>
+<th>Problem</th>
+<th>Likely cause</th>
+<th>Fix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>OLED blank</td>
+<td>Wrong address</td>
+<td>Try 0x3C/0x3D; I²C scanner</td>
+</tr>
+<tr>
+<td>RTC not found</td>
+<td>Wiring/coin cell</td>
+<td>Check 0x68; replace CR2032</td>
+</tr>
+<tr>
+<td>Temperature <code>--</code></td>
+<td>Missing pull-up</td>
+<td>4.7 kΩ from DQ to 3.3 V</td>
+</tr>
+<tr>
+<td>No power-fail detection</td>
+<td>Divider after D1</td>
+<td>Move divider to adapter side</td>
+</tr>
+<tr>
+<td>GPIO34 always high</td>
+<td>Divider wiring</td>
+<td>Check 10k/10k; measure with multimeter</td>
+</tr>
+<tr>
+<td>Save but no recovery</td>
+<td>Invalid record</td>
+<td>Check magic/CRC; serial log</td>
+</tr>
+<tr>
+<td>Hold-up too short</td>
+<td>Capacitance/load</td>
+<td>5 F; OLED off earlier; add boost</td>
+</tr>
+<tr>
+<td>ESP32 resets on unplug</td>
+<td>LDO dropout</td>
+<td>5 F; boost; shorter wires</td>
+</tr>
+<tr>
+<td>Charge resistor hot</td>
+<td>10 Ω 5 W?</td>
+<td>Use 5 W; pre-charge; check current</td>
+</tr>
+<tr>
+<td>USB backfeed</td>
+<td>USB connected</td>
+<td>Unplug USB during demo</td>
+</tr>
+<tr>
+<td>NVS write fails</td>
+<td>Namespace/key</td>
+<td>Check <code>Preferences</code> begin; serial log</td>
+</tr>
+<tr>
+<td>RTC time wrong</td>
+<td>Coin cell dead</td>
+<td>Replace; set time on boot</td>
+</tr>
+<tr>
+<td>RTC coin cell gets warm</td>
+<td>DS3231 trickle-charge circuit</td>
+<td>Use LIR2032 or remove the charging resistor for CR2032</td>
+</tr>
+<tr>
+<td>Supercapacitor won't fit breadboard</td>
+<td>Thick leads/large body</td>
+<td>Use a terminal block or solder wires</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Threshold calibration:</strong></p>
+<ol>
+<li>Measure the adapter voltage at GPIO34 with a multimeter.</li>
+<li>Confirm ~2.5 V at 5 V adapter.</li>
+<li>Set <code>ADAPTER_LOSS_V</code> to ~3.5 V (calculated adapter voltage).</li>
+<li>Unplug; confirm the ADC reads near 0 and the firmware detects within 20 ms.</li>
+<li>If the ADC is noisy, add a 100 nF capacitor from GPIO34 to GND and average 8 samples.</li>
+</ol>
+<hr>
+<h2 id="appendix-h-python-analysis-script">Appendix H: Python Analysis Script</h2>
+<p>The firmware prints one CSV row every 100 ms:</p>
+<pre><code class="language-text">t_ms,sc_v,adapter_v,powerFail
+12345,4.820,5.000,0
+12445,4.815,5.000,0
+...
+</code></pre>
+<p>The serial output also contains word-prefixed event lines (<code>BOOT</code>, <code>SAVE</code>, <code>RECOVERED</code>, <code>MANUAL_LOG</code>, <code>READY</code>). The script filters them out and keeps only the numeric CSV rows.</p>
+<pre><code class="language-python">from io import StringIO
+import pandas as pd
+import matplotlib.pyplot as plt
+
+with open(&quot;power_fail_log.csv&quot;) as f:
+    lines = [line for line in f if line[:1].isdigit()]
+
+df = pd.read_csv(
+    StringIO(&quot;&quot;.join(lines)),
+    names=[&quot;t_ms&quot;, &quot;sc_v&quot;, &quot;adapter_v&quot;, &quot;powerFail&quot;],
+)
+
+fig, ax = plt.subplots(figsize=(9, 4))
+ax.plot(df[&quot;t_ms&quot;] / 1000, df[&quot;sc_v&quot;], label=&quot;supercapacitor voltage&quot;)
+ax.plot(df[&quot;t_ms&quot;] / 1000, df[&quot;adapter_v&quot;], label=&quot;adapter voltage&quot;)
+ax.axhline(4.6, color=&quot;red&quot;, linestyle=&quot;--&quot;, label=&quot;LDO dropout limit&quot;)
+ax.set_xlabel(&quot;time (s)&quot;)
+ax.set_ylabel(&quot;voltage (V)&quot;)
+ax.grid(True, alpha=0.3)
+ax.legend()
+fig.tight_layout()
+fig.savefig(&quot;hold_up_plot.png&quot;, dpi=200)
+print(&quot;saved hold_up_plot.png&quot;)
+</code></pre>
+<p><strong>Tips:</strong></p>
+<ul>
+<li>The firmware logs at 10 Hz; if you need finer resolution, change the 100 ms interval in the sketch to 20 ms.</li>
+<li>Mark the unplug time in your notebook or with a manual log; the CSV does not include a "unplug" event.</li>
+<li>Use the measured curve to find the actual brownout voltage.</li>
+</ul>
+<hr>
+<h2 id="appendix-i-submission-checklist">Appendix I: Submission Checklist</h2>
+<h3 id="report">Report</h3>
+<ul>
+<li>[ ] Title page, declaration, certificate.</li>
+<li>[ ] Abstract with real numbers.</li>
+<li>[ ] Block diagram, power path, state machine.</li>
+<li>[ ] Component table and wiring table.</li>
+<li>[ ] Hold-up calculations.</li>
+<li>[ ] Design review/anomalies table.</li>
+<li>[ ] Firmware appendix or repository link.</li>
+<li>[ ] Test protocol.</li>
+<li>[ ] Results tables with real data.</li>
+<li>[ ] Hold-up plot and OLED photo.</li>
+<li>[ ] Discussion and limitations.</li>
+<li>[ ] References in the department's format.</li>
+<li>[ ] Page numbers, figure numbers, table numbers.</li>
+</ul>
+<h3 id="demo">Demo</h3>
+<ul>
+<li>[ ] Supercapacitor pre-charged for 2–3 minutes.</li>
+<li>[ ] Adapter, USB cable, spare jumper wires.</li>
+<li>[ ] OLED and serial monitor working.</li>
+<li>[ ] Backup video.</li>
+<li>[ ] Printed block diagram, power path, results table, viva notes.</li>
+<li>[ ] Multimeter for the hold-up measurement.</li>
+<li>[ ] Rehearsal: unplug → save → replug → recover, three times.</li>
+</ul>
+<h3 id="viva">Viva</h3>
+<ul>
+<li>[ ] Explain the power path without notes.</li>
+<li>[ ] Derive the hold-up equation.</li>
+<li>[ ] Explain why the adapter-sense divider is before D1.</li>
+<li>[ ] Explain NVS, CRC, magic, sequence.</li>
+<li>[ ] Explain the state machine.</li>
+<li>[ ] Explain the limitations honestly.</li>
+<li>[ ] Answer "what is novel?" with the delta, not the concept.</li>
+</ul>
+<hr>
+<h2 id="appendix-j-abbreviations">Appendix J: Abbreviations</h2>
+<table>
+<thead>
+<tr>
+<th>Abbreviation</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>ADC</strong></td>
+<td>Analog-to-Digital Converter</td>
+</tr>
+<tr>
+<td><strong>CRC</strong></td>
+<td>Cyclic Redundancy Check</td>
+</tr>
+<tr>
+<td><strong>ESR</strong></td>
+<td>Equivalent Series Resistance</td>
+</tr>
+<tr>
+<td><strong>I²C</strong></td>
+<td>Inter-Integrated Circuit bus</td>
+</tr>
+<tr>
+<td><strong>LDO</strong></td>
+<td>Low-Dropout Regulator</td>
+</tr>
+<tr>
+<td><strong>NVS</strong></td>
+<td>Non-Volatile Storage</td>
+</tr>
+<tr>
+<td><strong>PF</strong></td>
+<td>Power Failure</td>
+</tr>
+<tr>
+<td><strong>RTC</strong></td>
+<td>Real-Time Clock</td>
+</tr>
+<tr>
+<td><strong>SC</strong></td>
+<td>Supercapacitor</td>
+</tr>
+<tr>
+<td><strong>UPS</strong></td>
+<td>Uninterruptible Power Supply</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="appendix-k-design-review-anomalies-found-and-fixed">Appendix K: Design Review — Anomalies Found and Fixed</h2>
+<p>This appendix records the engineering review of the first draft. The review found several issues that would have caused a weak or unreliable demo. They are fixed in the final design.</p>
+<h3 id="k1-the-5-v-arduino-nano-voltage-window-problem">K.1 The 5 V Arduino Nano voltage-window problem</h3>
+<p><strong>First draft:</strong> Arduino Nano 5 V, diode OR, 5 F supercapacitor.</p>
+<p><strong>Problem:</strong> The ATmega328P at 16 MHz requires a supply of at least <strong>4.5 V</strong>. The diode D2 drops about 0.3 V, so the Nano's 5 V pin sees the supercapacitor voltage minus 0.3 V. If the Nano needs 4.5 V, the supercapacitor can only discharge from about 5.0 V to 4.8 V before the Nano is out of spec. That is a tiny usable window and a short hold-up.</p>
+<p><strong>Fix:</strong> Use the <strong>ESP32 DevKit at 3.3 V</strong>. Its LDO input can fall to about 4.3–4.4 V while the 3.3 V rail stays regulated, giving a larger usable window. For a longer hold-up, add a <strong>5 V boost</strong> after the supercapacitor. The final design uses the ESP32 and recommends the boost as an optional upgrade.</p>
+<h3 id="k2-adapter-sense-divider-placement">K.2 Adapter-sense divider placement</h3>
+<p><strong>First draft:</strong> The divider was drawn after D1, on the 5 V rail.</p>
+<p><strong>Problem:</strong> When the adapter is removed, the supercapacitor holds the 5 V rail high, so the divider still reads ~5 V. The firmware never sees the power failure.</p>
+<p><strong>Fix:</strong> Connect the divider <strong>before D1</strong>, on the adapter side. The divider then collapses to 0 V immediately when the adapter is unplugged.</p>
+<h3 id="k3-usb-backfeed">K.3 USB backfeed</h3>
+<p><strong>First draft:</strong> The 5 V pin was powered from the adapter while the USB cable was connected.</p>
+<p><strong>Problem:</strong> The USB 5 V and the external 5 V can backfeed each other, potentially damaging the board or the USB port.</p>
+<p><strong>Fix:</strong> Program over USB first, then <strong>unplug USB</strong> and power the board from the adapter/supercapacitor path. An optional Schottky diode from the USB 5 V to the rail can provide extra protection.</p>
+<h3 id="k4-supercapacitor-inrush-and-charge-time">K.4 Supercapacitor inrush and charge time</h3>
+<p><strong>First draft:</strong> The supercapacitor was connected directly to 5 V.</p>
+<p><strong>Problem:</strong> A discharged 5 F capacitor looks like a short circuit. The adapter sees a large inrush current, and the capacitor takes a long time to charge.</p>
+<p><strong>Fix:</strong> Add a <strong>10 Ω, 5 W</strong> series resistor. Initial current is about 0.5 A; the resistor dissipates about 2.5 W at the start, so a 5 W part is used. Pre-charge for 2–3 minutes before the demo.</p>
+<h3 id="k5-diode-or-does-not-isolate-the-supercapacitor">K.5 Diode OR does not isolate the supercapacitor</h3>
+<p><strong>First draft:</strong> The diode OR was assumed to disconnect the supercapacitor when the adapter is present.</p>
+<p><strong>Problem:</strong> With the adapter at 5 V and the rail at ~4.7 V, D2 is forward-biased; the supercapacitor can supply part of the load while the adapter charges it through the 10 Ω resistor. This is not a true isolation.</p>
+<p><strong>Fix:</strong> Accept it for a prototype, and document it. A <strong>power-path switch</strong> or an <strong>ideal-diode controller</strong> is the correct upgrade if isolation is required.</p>
+<h3 id="k6-esp32-ldo-dropout">K.6 ESP32 LDO dropout</h3>
+<p><strong>First draft:</strong> The hold-up calculation used 5.0 V → 3.3 V, which is unrealistic.</p>
+<p><strong>Problem:</strong> The ESP32 DevKit's AMS1117-style LDO has a dropout of about 1.0–1.1 V. The input must stay above ~4.3–4.4 V for the 3.3 V rail to remain regulated.</p>
+<p><strong>Fix:</strong> Use 5.0 V → 4.6 V in the conservative calculation. The measured hold-up is shorter than the ideal 5.0 V → 3.3 V calculation. A <strong>5 V boost</strong> or a <strong>low-dropout 3.3 V regulator</strong> improves the usable range.</p>
+<h3 id="k7-ds18b20-blocking-conversion">K.7 DS18B20 blocking conversion</h3>
+<p><strong>First draft:</strong> <code>requestTemperatures()</code> blocked for 750 ms.</p>
+<p><strong>Problem:</strong> A power failure during the conversion would be detected late.</p>
+<p><strong>Fix:</strong> <code>setWaitForConversion(false)</code> and a non-blocking state variable; the firmware reads the previous result.</p>
+<h3 id="k8-nvs-write-atomicity">K.8 NVS write atomicity</h3>
+<p><strong>First draft:</strong> A single record was written without a CRC.</p>
+<p><strong>Problem:</strong> A power failure during the write could leave a partially written record.</p>
+<p><strong>Fix:</strong> Add <strong>magic + sequence + CRC16</strong>; validate on boot. Double-buffering is future work.</p>
+<h3 id="k9-rtc-coin-cell">K.9 RTC coin cell</h3>
+<p><strong>First draft:</strong> The RTC was assumed to have a good coin cell.</p>
+<p><strong>Problem:</strong> A dead CR2032 resets the timestamp after a power loss.</p>
+<p><strong>Fix:</strong> Check/replace the coin cell; the sequence number and PF count still work without a valid timestamp.</p>
+<h3 id="k10-supercapacitor-self-discharge-and-esr">K.10 Supercapacitor self-discharge and ESR</h3>
+<p><strong>First draft:</strong> The hold-up calculation assumed an ideal capacitor.</p>
+<p><strong>Problem:</strong> ESR and self-discharge reduce the real hold-up.</p>
+<p><strong>Fix:</strong> Derate the calculated hold-up by at least 50%; measure the actual hold-up.</p>
+<h3 id="k11-oled-current">K.11 OLED current</h3>
+<p><strong>First draft:</strong> The OLED stayed on during the hold-up.</p>
+<p><strong>Problem:</strong> The display drains the supercapacitor and shortens the hold-up.</p>
+<p><strong>Fix:</strong> Show the <code>SAVED</code> message for a short time, then turn the OLED off with <code>SSD1306_DISPLAYOFF</code>.</p>
+<h3 id="k12-adc-linearity">K.12 ADC linearity</h3>
+<p><strong>First draft:</strong> The ADC threshold was assumed exact.</p>
+<p><strong>Problem:</strong> The ESP32 ADC is not perfectly linear, especially near the rails.</p>
+<p><strong>Fix:</strong> Calibrate the threshold with a multimeter; average several samples; add a 100 nF capacitor; use a comparator for a critical design.</p>
+<hr>
+<h3 id="final-note">Final note</h3>
+<p>The strongest version of this project is not the one with the biggest supercapacitor. It is the one where:</p>
+<ol>
+<li>the unplug/replug demo works 20 times in a row,</li>
+<li>the report contains real hold-up and recovery measurements,</li>
+<li>every design choice and correction is explained,</li>
+<li>and the limitations are stated honestly.</li>
+</ol>
+<p>Keep the scope small, measure the hold-up, and record a backup video.</p>
+</body>
+</html>
